@@ -1,0 +1,6 @@
+ase
+pymatgen
+matplotlib
+numpy
+spglib
+ovito

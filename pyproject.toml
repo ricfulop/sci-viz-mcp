@@ -1,0 +1,17 @@
+[project]
+name = "sci-viz-mcp"
+version = "0.1.0"
+description = "MCP servers for scientific visualization: crystal structures (ASE/pymatgen), atomistic rendering (OVITO), and 3D rendering (Blender)"
+requires-python = ">=3.10"
+dependencies = [
+    "ase",
+    "pymatgen",
+    "matplotlib",
+    "numpy",
+    "spglib",
+    "ovito",
+]
+
+[project.optional-dependencies]
+blender = ["blender-mcp"]
+dev = ["pytest"]

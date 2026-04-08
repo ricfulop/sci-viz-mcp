@@ -1,0 +1,137 @@
+{
+  "tools": [
+    {
+      "name": "crystal.import_structure",
+      "description": "Load a crystal structure from CIF, POSCAR, XYZ, or other ASE-readable format.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {"type": "string", "description": "Path to structure file"},
+          "format": {"type": "string", "description": "Optional format hint"}
+        },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "crystal.build_supercell",
+      "description": "Build NxMxL supercell from loaded structure.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "repeats": {"type": "array", "items": {"type": "integer"}}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "crystal.create_defect",
+      "description": "Create a point defect (vacancy, substitution, or interstitial).",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "defect_type": {"type": "string", "enum": ["vacancy", "substitution", "interstitial"]},
+          "site_index": {"type": "integer"},
+          "species": {"type": "string"},
+          "position": {"type": "array", "items": {"type": "number"}}
+        },
+        "required": ["handle", "defect_type"]
+      }
+    },
+    {
+      "name": "crystal.get_symmetry",
+      "description": "Return space group, Wyckoff positions, and equivalent sites.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "symprec": {"type": "number"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "crystal.render_lattice",
+      "description": "Render 2D lattice projection to PDF/PNG/SVG.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "output_file": {"type": "string"},
+          "projection": {"type": "string"},
+          "style": {"type": "string"},
+          "atom_colors": {"type": "object"},
+          "atom_radii": {"type": "object"},
+          "bond_cutoff": {"type": "number"},
+          "show_cell": {"type": "boolean"},
+          "show_labels": {"type": "boolean"},
+          "dpi": {"type": "integer"},
+          "title": {"type": "string"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "crystal.render_unit_cell",
+      "description": "Render annotated unit cell with Wyckoff labels and bond lengths.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "output_file": {"type": "string"},
+          "projection": {"type": "string"},
+          "show_wyckoff": {"type": "boolean"},
+          "show_bond_lengths": {"type": "boolean"},
+          "show_lattice_params": {"type": "boolean"},
+          "dpi": {"type": "integer"},
+          "title": {"type": "string"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "crystal.compare_structures",
+      "description": "Side-by-side rendering of two structures.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle_a": {"type": "string"},
+          "handle_b": {"type": "string"},
+          "output_file": {"type": "string"},
+          "label_a": {"type": "string"},
+          "label_b": {"type": "string"},
+          "arrow_label": {"type": "string"},
+          "dpi": {"type": "integer"}
+        },
+        "required": ["handle_a", "handle_b"]
+      }
+    },
+    {
+      "name": "crystal.export_tikz",
+      "description": "Generate TikZ code for a lattice diagram.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "output_file": {"type": "string"},
+          "projection": {"type": "string"},
+          "scale": {"type": "number"},
+          "atom_colors": {"type": "object"},
+          "show_cell": {"type": "boolean"},
+          "show_bonds": {"type": "boolean"},
+          "bond_cutoff": {"type": "number"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "crystal.list_structures",
+      "description": "List all currently loaded crystal structures.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

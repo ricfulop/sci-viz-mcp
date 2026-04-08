@@ -1,0 +1,77 @@
+{
+  "tools": [
+    {
+      "name": "blender.ping",
+      "description": "Check if Blender is running and reachable.",
+      "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+      "name": "blender.import_crystal",
+      "description": "Import crystal structure (CIF/XYZ) as ball-and-stick model.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {"type": "string"},
+          "bond_cutoff": {"type": "number"},
+          "atom_scale": {"type": "number"},
+          "bond_radius": {"type": "number"}
+        },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "blender.set_science_preset",
+      "description": "Apply publication rendering preset.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "preset": {"type": "string", "enum": ["white_clean", "soft_shadow", "perspective_depth", "dark_presentation"]},
+          "transparent_background": {"type": "boolean"}
+        }
+      }
+    },
+    {
+      "name": "blender.render_hq",
+      "description": "Render with Cycles at specified resolution.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "output_file": {"type": "string"},
+          "width": {"type": "integer"},
+          "height": {"type": "integer"},
+          "samples": {"type": "integer"}
+        }
+      }
+    },
+    {
+      "name": "blender.add_annotation_3d",
+      "description": "Add 3D text label to the scene.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"},
+          "position": {"type": "array", "items": {"type": "number"}},
+          "size": {"type": "number"},
+          "color": {"type": "string"}
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "blender.execute_code",
+      "description": "Execute arbitrary Python code inside Blender.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "code": {"type": "string"}
+        },
+        "required": ["code"]
+      }
+    },
+    {
+      "name": "blender.get_scene_info",
+      "description": "Get current Blender scene information.",
+      "input_schema": {"type": "object", "properties": {}}
+    }
+  ]
+}

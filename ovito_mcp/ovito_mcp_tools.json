@@ -1,0 +1,121 @@
+{
+  "tools": [
+    {
+      "name": "ovito.import_data",
+      "description": "Load atomistic data from CIF, LAMMPS dump, POSCAR, XYZ, GSD.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {"type": "string"},
+          "columns": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "ovito.add_modifier",
+      "description": "Apply an OVITO modifier to the pipeline.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "modifier": {"type": "string"},
+          "params": {"type": "object"}
+        },
+        "required": ["handle", "modifier"]
+      }
+    },
+    {
+      "name": "ovito.set_visual_style",
+      "description": "Configure particle radii, colors, and cell visibility.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "particle_radii": {"type": "object"},
+          "particle_colors": {"type": "object"},
+          "show_cell": {"type": "boolean"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "ovito.set_camera",
+      "description": "Position the camera for rendering.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "type": {"type": "string", "enum": ["ORTHO", "PERSPECTIVE"]},
+          "direction": {"type": "array", "items": {"type": "number"}},
+          "fov": {"type": "number"},
+          "position": {"type": "array", "items": {"type": "number"}}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "ovito.render_image",
+      "description": "Render the scene to PNG/TIFF using Tachyon ray-tracer.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "output_file": {"type": "string"},
+          "width": {"type": "integer"},
+          "height": {"type": "integer"},
+          "background": {"type": "string"},
+          "antialiasing": {"type": "boolean"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "ovito.render_animation",
+      "description": "Render frame sequence for time-resolved data.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "output_file": {"type": "string"},
+          "width": {"type": "integer"},
+          "height": {"type": "integer"},
+          "fps": {"type": "integer"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "ovito.compute_property",
+      "description": "Extract computed properties or analysis results as JSON.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"},
+          "property": {"type": "string"},
+          "max_values": {"type": "integer"}
+        },
+        "required": ["handle", "property"]
+      }
+    },
+    {
+      "name": "ovito.pipeline_status",
+      "description": "Inspect current pipeline state.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {"type": "string"}
+        },
+        "required": ["handle"]
+      }
+    },
+    {
+      "name": "ovito.list_pipelines",
+      "description": "List all active OVITO pipelines.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}
