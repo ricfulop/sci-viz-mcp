@@ -25,6 +25,10 @@ import socket
 import traceback
 from pathlib import Path
 
+_THIS_DIR = Path(__file__).parent.resolve()
+sys.path.insert(0, str(_THIS_DIR.parent))
+from preview.notify import notify_preview
+
 BLENDER_HOST = "localhost"
 BLENDER_PORT = 9876
 TIMEOUT = 30
@@ -355,6 +359,7 @@ bpy.ops.render.render(write_still=True)
 print("RESULT:rendered")
 """
     response = _execute_code(code)
+    notify_preview(output_file, "blender.render_hq", args, "blender_mcp")
     return {
         "output_file": output_file,
         "width": width,

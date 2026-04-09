@@ -16,6 +16,8 @@ import traceback
 from pathlib import Path
 
 _THIS_DIR = Path(__file__).parent.resolve()
+sys.path.insert(0, str(_THIS_DIR.parent))
+from preview.notify import notify_preview
 
 OUTPUT_DIR = Path(os.environ.get(
     "OVITO_MCP_OUTPUT_DIR",
@@ -314,6 +316,7 @@ def handle_render_image(args):
     finally:
         pipeline.remove_from_scene()
 
+    notify_preview(output_path, "ovito.render_image", args, "ovito_mcp")
     return {
         "output_file": output_path,
         "width": width,
@@ -365,6 +368,7 @@ def handle_render_animation(args):
     finally:
         pipeline.remove_from_scene()
 
+    notify_preview(output_path, "ovito.render_animation", args, "ovito_mcp")
     return {
         "output_file": output_path,
         "num_frames": pipeline.source.num_frames,

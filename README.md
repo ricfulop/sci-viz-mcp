@@ -74,6 +74,36 @@ Publication-quality visualization of COMSOL field exports.
 | `comsol_viz.list_datasets` | List loaded field datasets |
 | `comsol_viz.get_field_stats` | Min/max/mean of field data |
 
+## Live Preview Dashboard
+
+Every render from any MCP server (crystal, OVITO, Blender, COMSOL) appears in
+a browser-based live preview dashboard in real time.
+
+```
+MCP servers ──POST /api/render──▶ preview server ──WebSocket──▶ browser dashboard
+```
+
+**Auto-launch:** The first time any MCP tool produces a render, the preview
+server starts automatically and opens your browser. No manual setup needed.
+
+**Manual launch:** Or start it yourself:
+
+```bash
+cd /Users/ricfulop/voltivity/sci-viz-mcp
+source .venv/bin/activate
+python -m preview.server
+```
+
+Dashboard → [http://localhost:8765](http://localhost:8765)
+
+Features:
+- Real-time image/PDF preview as renders complete
+- History strip with thumbnails — click to revisit any render
+- Metadata panel showing tool name, server, parameters, and file path
+- Keyboard navigation: `←` / `→` to browse history, `Space` to jump to latest
+- Auto-reconnecting WebSocket — survives network hiccups
+- Dark theme optimized for extended use
+
 ## Figure Styles
 
 ```python
@@ -138,7 +168,7 @@ Design conventions extracted from the most-cited papers using lattice structure 
 cd /Users/ricfulop/voltivity/sci-viz-mcp
 python3 -m venv .venv
 source .venv/bin/activate
-pip install ase pymatgen matplotlib numpy spglib ovito phonopy h5py
+pip install ase pymatgen matplotlib numpy spglib ovito phonopy h5py aiohttp
 ```
 
 Servers are registered in `~/.cursor/mcp.json` — restart Cursor to activate.

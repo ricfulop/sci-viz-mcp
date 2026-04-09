@@ -27,6 +27,7 @@ from matplotlib.collections import PolyCollection
 _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR.parent))
 from styles import get_style_dict, _APS_RCPARAMS, _NATURE_RCPARAMS
+from preview.notify import notify_preview
 
 _STYLE_PRESETS = {"aps": _APS_RCPARAMS, "nature": _NATURE_RCPARAMS}
 
@@ -189,6 +190,7 @@ def handle_render_field_map(args):
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
+    notify_preview(output_path, "comsol_viz.render_field_map", args, "comsol_viz_mcp")
     return {"output_file": output_path, "handle": handle, "field": field_name}
 
 
@@ -256,6 +258,7 @@ def handle_render_line_cut(args):
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
+    notify_preview(output_path, "comsol_viz.render_line_cut", args, "comsol_viz_mcp")
     return {
         "output_file": output_path,
         "n_points": int(mask.sum()),
@@ -295,6 +298,7 @@ def handle_render_mesh(args):
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
+    notify_preview(output_path, "comsol_viz.render_mesh", args, "comsol_viz_mcp")
     return {"output_file": output_path, "n_points": len(coords), "n_triangles": len(tri.triangles)}
 
 

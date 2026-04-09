@@ -28,6 +28,9 @@ from renderers import (
 )
 from tikz_export import export_tikz
 
+sys.path.insert(0, str(_THIS_DIR.parent))
+from preview.notify import notify_preview
+
 # ── Lazy imports for heavy libs ──────────────────────────────────────────────
 
 _ase = None
@@ -282,6 +285,7 @@ def handle_render_lattice(args):
         style_preset=args.get("style_preset", "aps"),
     )
 
+    notify_preview(result_path, "crystal.render_lattice", args, "crystal_mcp")
     return {"output_file": result_path, "handle": handle}
 
 
@@ -310,6 +314,7 @@ def handle_render_unit_cell(args):
         style_preset=args.get("style_preset", "aps"),
     )
 
+    notify_preview(result_path, "crystal.render_unit_cell", args, "crystal_mcp")
     return {"output_file": result_path, "handle": handle}
 
 
@@ -340,6 +345,7 @@ def handle_compare_structures(args):
         style_preset=args.get("style_preset", "aps"),
     )
 
+    notify_preview(result_path, "crystal.compare_structures", args, "crystal_mcp")
     return {"output_file": result_path}
 
 
@@ -365,6 +371,7 @@ def handle_export_tikz(args):
         bond_cutoff=args.get("bond_cutoff", 3.0),
     )
 
+    notify_preview(result_path, "crystal.export_tikz", args, "crystal_mcp")
     return {"output_file": result_path, "handle": handle}
 
 
