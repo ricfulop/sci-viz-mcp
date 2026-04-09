@@ -101,6 +101,37 @@ comsol.export_fields ──────────┼──→ comsol_viz.load_
 comsol.export_kpis ────────────┘    comsol_viz.render_line_cut
 ```
 
+## Benchmark: Highly-Cited Crystal Structure Figures
+
+Design conventions extracted from the most-cited papers using lattice structure figures, identified via [scite.ai](https://scite.ai) Smart Citation analysis.
+
+### Reference papers
+
+| Citations | Paper | Journal | Figure techniques |
+|-----------|-------|---------|-------------------|
+| 23,838 | Momma & Izumi, [VESTA 3](https://doi.org/10.1107/s0021889811038970) (2011) | J. Appl. Crystallogr. | Polyhedral + ball-and-stick hybrid, thermal ellipsoids, isosurfaces — the standard |
+| 2,663 | Saparov & Mitzi, [Organic-Inorganic Perovskites](https://doi.org/10.1021/acs.chemrev.5b00715) (2016) | Chem. Rev. | Skeletal + polyhedral combined views, dimensionality slicing schematics |
+| 2,327 | Adler, [SOFC Cathodes](https://doi.org/10.1021/cr020724o) (2004) | Chem. Rev. | Polyhedral + vacancy hopping arrows overlaid on structure |
+| 1,410 | Zheng et al., [Nanostructured WO₃](https://doi.org/10.1002/adfm.201002477) (2011) | Adv. Funct. Mater. | Polyhedral tilt representations for 6 crystal phases, phase transformation sequences |
+| 1,077 | Tsunekawa et al., [CeO₂ nanocrystals](https://doi.org/10.1063/1.2061873) (2005) | Appl. Phys. Lett. | Fluorite lattice parameter vs. size with structural schematic |
+| 1,044 | Volonakis et al., [Cs₂InAgCl₆](https://doi.org/10.1021/acs.jpclett.6b02682) (2017) | JPCL | Ball-and-stick Fm-3m with alternating octahedra, widely reproduced |
+| 1,018 | Adachi & Imanaka, [Binary Rare Earth Oxides](https://doi.org/10.1021/cr940055h) (1998) | Chem. Rev. | Fluorite vacancy superstructure + diffraction evidence |
+| 882 | Li et al., [Na₀.₅Bi₀.₅TiO₃](https://doi.org/10.1038/nmat3782) (2013) | Nature Mater. | Side-by-side parent/child phases, vacancy channels, + electron diffraction |
+| 647 | Foster et al., [Vacancies in hafnia](https://doi.org/10.1103/physrevb.65.174117) (2002) | Phys. Rev. B | Defect site ball-and-stick with charge density overlay |
+
+### Key conventions from highly-cited papers
+
+| Convention | Description | Implemented? |
+|------------|-------------|:---:|
+| Polyhedral + ball hybrid | Show coordination polyhedra AND individual atoms | Planned |
+| Phase transformation arrows | Side-by-side parent → child with bold arrow | Yes |
+| Vacancy channels colored | Highlight vacancy-rich planes in a distinct color | Yes |
+| Diffraction evidence inset | Small SAED/XRD pattern proving structural claim | Yes |
+| Bond-length annotations | Explicit angstrom values on key bonds | Yes |
+| Color-coded Wyckoff sites | Different colors per crystallographic site | Planned |
+| 3D perspective with depth | Slight perspective or isometric view showing 3D character | Planned |
+| Derivation box | Math box showing key calculation leading to prediction | Yes |
+
 ## Setup
 
 ```bash
