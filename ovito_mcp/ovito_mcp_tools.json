@@ -1,120 +1,972 @@
 {
   "tools": [
     {
-      "name": "ovito.import_data",
-      "description": "Load atomistic data from CIF, LAMMPS dump, POSCAR, XYZ, GSD.",
-      "input_schema": {
+      "name": "ovito.import_file",
+      "description": "Import atomistic data from CIF, LAMMPS dump/data, POSCAR, XYZ, GSD, PDB, GRO, NetCDF, DCD, CFG, or any other OVITO-supported format. Returns a pipeline handle plus data summary.",
+      "inputSchema": {
         "type": "object",
         "properties": {
-          "file_path": {"type": "string"},
-          "columns": {"type": "array", "items": {"type": "string"}}
+          "file_path": {
+            "type": "string",
+            "description": "Path/URL to data file. '*' for frame sequences."
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Column mapping for simple XYZ."
+          },
+          "input_format": {
+            "type": "string",
+            "description": "Explicit format: cif, lammps/dump, vasp, xyz, pdb, gro, etc."
+          },
+          "sort_particles": {
+            "type": "boolean"
+          },
+          "atom_style": {
+            "type": "string",
+            "description": "LAMMPS atom style."
+          }
         },
-        "required": ["file_path"]
+        "required": [
+          "file_path"
+        ]
       }
     },
     {
-      "name": "ovito.add_modifier",
-      "description": "Apply an OVITO modifier to the pipeline.",
-      "input_schema": {
+      "name": "ovito.export_file",
+      "description": "Export pipeline data to file. Formats: lammps/dump, lammps/data, xyz, vasp, gsd/hoomd, netcdf/amber, vtk/trimesh, gltf, txt/attr, txt/table, fhi-aims, imd, ase/traj.",
+      "inputSchema": {
         "type": "object",
         "properties": {
-          "handle": {"type": "string"},
-          "modifier": {"type": "string"},
-          "params": {"type": "object"}
+          "handle": {
+            "type": "string"
+          },
+          "output_path": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "frame": {
+            "type": "integer"
+          },
+          "multiple_frames": {
+            "type": "boolean"
+          },
+          "start_frame": {
+            "type": "integer"
+          },
+          "end_frame": {
+            "type": "integer"
+          },
+          "every_nth_frame": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "precision": {
+            "type": "integer"
+          }
         },
-        "required": ["handle", "modifier"]
+        "required": [
+          "handle",
+          "output_path",
+          "format"
+        ]
       }
     },
     {
-      "name": "ovito.set_visual_style",
-      "description": "Configure particle radii, colors, and cell visibility.",
-      "input_schema": {
+      "name": "ovito.create_pipeline",
+      "description": "Create an empty pipeline (StaticSource) for procedural data.",
+      "inputSchema": {
         "type": "object",
         "properties": {
-          "handle": {"type": "string"},
-          "particle_radii": {"type": "object"},
-          "particle_colors": {"type": "object"},
-          "show_cell": {"type": "boolean"}
-        },
-        "required": ["handle"]
+          "label": {
+            "type": "string"
+          },
+          "cell_matrix": {
+            "type": "array"
+          },
+          "pbc": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        }
       }
     },
     {
-      "name": "ovito.set_camera",
-      "description": "Position the camera for rendering.",
-      "input_schema": {
+      "name": "ovito.load_trajectory",
+      "description": "Load a topology+trajectory file pair (GROMACS TPR+XTC, AMBER prmtop+nc, LAMMPS data+dump). The topology provides bonds/types, the trajectory provides frames.",
+      "inputSchema": {
         "type": "object",
         "properties": {
-          "handle": {"type": "string"},
-          "type": {"type": "string", "enum": ["ORTHO", "PERSPECTIVE"]},
-          "direction": {"type": "array", "items": {"type": "number"}},
-          "fov": {"type": "number"},
-          "position": {"type": "array", "items": {"type": "number"}}
+          "topology_file": {
+            "type": "string",
+            "description": "Path to topology file (e.g. .data, .pdb, .gro)."
+          },
+          "trajectory_file": {
+            "type": "string",
+            "description": "Path to trajectory file (e.g. .dump, .xtc, .dcd, .nc)."
+          },
+          "atom_style": {
+            "type": "string"
+          },
+          "input_format": {
+            "type": "string"
+          }
         },
-        "required": ["handle"]
-      }
-    },
-    {
-      "name": "ovito.render_image",
-      "description": "Render the scene to PNG/TIFF using Tachyon ray-tracer.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "handle": {"type": "string"},
-          "output_file": {"type": "string"},
-          "width": {"type": "integer"},
-          "height": {"type": "integer"},
-          "background": {"type": "string"},
-          "antialiasing": {"type": "boolean"}
-        },
-        "required": ["handle"]
-      }
-    },
-    {
-      "name": "ovito.render_animation",
-      "description": "Render frame sequence for time-resolved data.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "handle": {"type": "string"},
-          "output_file": {"type": "string"},
-          "width": {"type": "integer"},
-          "height": {"type": "integer"},
-          "fps": {"type": "integer"}
-        },
-        "required": ["handle"]
-      }
-    },
-    {
-      "name": "ovito.compute_property",
-      "description": "Extract computed properties or analysis results as JSON.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "handle": {"type": "string"},
-          "property": {"type": "string"},
-          "max_values": {"type": "integer"}
-        },
-        "required": ["handle", "property"]
-      }
-    },
-    {
-      "name": "ovito.pipeline_status",
-      "description": "Inspect current pipeline state.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "handle": {"type": "string"}
-        },
-        "required": ["handle"]
+        "required": [
+          "topology_file",
+          "trajectory_file"
+        ]
       }
     },
     {
       "name": "ovito.list_pipelines",
-      "description": "List all active OVITO pipelines.",
-      "input_schema": {
+      "description": "List all active OVITO pipelines with handles and paths.",
+      "inputSchema": {
         "type": "object",
         "properties": {}
+      }
+    },
+    {
+      "name": "ovito.pipeline_info",
+      "description": "Detailed pipeline inspection: data, modifiers, frames, all properties.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "integer",
+            "description": "Frame to inspect (default 0)."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.delete_pipeline",
+      "description": "Remove a pipeline from memory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.compute",
+      "description": "Evaluate the pipeline at a specific frame and return a data summary.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.animation_settings",
+      "description": "Configure trajectory playback: playback_ratio ('1:1', '1:3', '2:1'), playback_start_time, and static_frame (lock to a single frame).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "playback_ratio": {
+            "type": "string",
+            "description": "Ratio string like '1:3' or '2:1'."
+          },
+          "playback_start_time": {
+            "type": "integer"
+          },
+          "static_frame": {
+            "type": "integer",
+            "description": "Lock to frame index, or null to unlock."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.add_modifier",
+      "description": "Append an OVITO modifier to the pipeline. Use list_available_modifiers for full catalog. Common: CommonNeighborAnalysisModifier, CoordinationAnalysisModifier, VoronoiAnalysisModifier, DislocationAnalysisModifier, ColorCodingModifier, SliceModifier, ReplicateModifier, CreateBondsModifier, ConstructSurfaceModifier, AtomicStrainModifier, HistogramModifier, WignerSeitzAnalysisModifier, CentroSymmetryModifier, PolyhedralTemplateMatchingModifier.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "modifier": {
+            "type": "string",
+            "description": "Modifier class name."
+          },
+          "params": {
+            "type": "object",
+            "description": "Constructor kwargs (e.g. {\"cutoff\": 3.5})."
+          }
+        },
+        "required": [
+          "handle",
+          "modifier"
+        ]
+      }
+    },
+    {
+      "name": "ovito.remove_modifier",
+      "description": "Remove a modifier from the pipeline by 0-based index.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "index"
+        ]
+      }
+    },
+    {
+      "name": "ovito.modify_modifier",
+      "description": "Update parameters or toggle enable/disable on an existing modifier without removing it. Use pipeline_info to see modifier indices and types.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "description": "0-based modifier index."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable/disable the modifier."
+          },
+          "params": {
+            "type": "object",
+            "description": "Parameters to update (e.g. {\"cutoff\": 4.0})."
+          }
+        },
+        "required": [
+          "handle",
+          "index"
+        ]
+      }
+    },
+    {
+      "name": "ovito.configure_color_gradient",
+      "description": "Set the color gradient on a ColorCodingModifier. Gradients: Rainbow, Grayscale, Hot, Jet, Viridis, Magma, BlueWhiteRed, BlueGreenRed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "gradient": {
+            "type": "string",
+            "description": "Gradient name (e.g. 'Viridis', 'Hot', 'Rainbow')."
+          },
+          "modifier_index": {
+            "type": "integer",
+            "description": "Index of the ColorCodingModifier (auto-detected if omitted)."
+          }
+        },
+        "required": [
+          "handle",
+          "gradient"
+        ]
+      }
+    },
+    {
+      "name": "ovito.list_available_modifiers",
+      "description": "List all OVITO modifier classes available for add_modifier.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "ovito.run_python_script",
+      "description": "Execute arbitrary OVITO Python code. Access: pipeline, data, ovito, numpy (np), output_dir. Set 'result' variable to return data.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      }
+    },
+    {
+      "name": "ovito.inspect_data",
+      "description": "Comprehensive snapshot: particles, types, properties, bonds, cell, tables, attributes, meshes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.get_properties",
+      "description": "Extract per-particle or per-bond property values as JSON arrays with statistics.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string"
+          },
+          "container": {
+            "type": "string",
+            "enum": [
+              "particles",
+              "bonds"
+            ]
+          },
+          "max_values": {
+            "type": "integer"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "property"
+        ]
+      }
+    },
+    {
+      "name": "ovito.get_attributes",
+      "description": "Get all global attributes (scalar quantities) from the pipeline output.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.get_data_table",
+      "description": "Retrieve a named DataTable (histogram, RDF, etc.) as x/y arrays.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "max_rows": {
+            "type": "integer"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "table"
+        ]
+      }
+    },
+    {
+      "name": "ovito.query_mesh",
+      "description": "Query SurfaceMesh (volume, area, vertices, faces), DislocationNetwork (segments, Burgers vectors, line lengths), or VoxelGrid (shape, stats).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "surface",
+              "dislocations",
+              "voxel_grid"
+            ]
+          },
+          "frame": {
+            "type": "integer"
+          },
+          "max_items": {
+            "type": "integer",
+            "description": "Max segments/vertices to return (default 200)."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.find_neighbors",
+      "description": "Find neighbors of a particle. Modes: 'cutoff' (all within distance), 'nearest' (N nearest). Returns indices, distances, delta vectors.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "particle_index": {
+            "type": "integer",
+            "description": "0-based index of the central particle."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "cutoff",
+              "nearest"
+            ]
+          },
+          "cutoff": {
+            "type": "number",
+            "description": "Cutoff distance (for mode='cutoff', default 5.0)."
+          },
+          "num_neighbors": {
+            "type": "integer",
+            "description": "Number of neighbors (for mode='nearest', default 12)."
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "particle_index"
+        ]
+      }
+    },
+    {
+      "name": "ovito.manage_types",
+      "description": "Rename particle/bond types or set their mass, radius, and color. Identify types by 'id' or 'name'. Set 'new_name', 'mass', 'radius', 'color'.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "container": {
+            "type": "string",
+            "enum": [
+              "particles",
+              "bonds"
+            ],
+            "description": "Default: particles."
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "new_name": {
+                  "type": "string"
+                },
+                "mass": {
+                  "type": "number"
+                },
+                "radius": {
+                  "type": "number"
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Hex color string."
+                }
+              }
+            },
+            "description": "List of type updates."
+          }
+        },
+        "required": [
+          "handle",
+          "types"
+        ]
+      }
+    },
+    {
+      "name": "ovito.combine_datasets",
+      "description": "Merge a secondary pipeline into the primary one using CombineDatasetsModifier. Both pipelines must already be loaded from files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "Primary pipeline handle."
+          },
+          "secondary_handle": {
+            "type": "string",
+            "description": "Pipeline to merge in."
+          }
+        },
+        "required": [
+          "handle",
+          "secondary_handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.create_particles",
+      "description": "Create particles programmatically from position arrays. Optionally add types, bonds, and a simulation cell.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "positions": {
+            "type": "array",
+            "description": "Nx3 array of [x,y,z] positions."
+          },
+          "type_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Per-particle type IDs."
+          },
+          "type_names": {
+            "type": "object",
+            "description": "Map type ID to name: {\"1\": \"Cu\"}."
+          },
+          "bonds": {
+            "type": "array",
+            "description": "Mx2 array of [i,j] bond pairs."
+          },
+          "cell_matrix": {
+            "type": "array"
+          },
+          "pbc": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "positions"
+        ]
+      }
+    },
+    {
+      "name": "ovito.measure",
+      "description": "Measure distance (2 indices), angle (3 indices, vertex is middle), or dihedral angle (4 indices) between particles.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "2, 3, or 4 particle indices."
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle",
+          "indices"
+        ]
+      }
+    },
+    {
+      "name": "ovito.select_expression",
+      "description": "Select particles using a Boolean expression (e.g. 'Position.X > 5.0').",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "expression"
+        ]
+      }
+    },
+    {
+      "name": "ovito.select_type",
+      "description": "Select particles of specific type(s) by name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "handle",
+          "types"
+        ]
+      }
+    },
+    {
+      "name": "ovito.set_visual_style",
+      "description": "Configure particle radii, colors, and cell appearance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "particle_radii": {
+            "type": "object"
+          },
+          "particle_colors": {
+            "type": "object"
+          },
+          "show_cell": {
+            "type": "boolean"
+          },
+          "cell_line_width": {
+            "type": "number"
+          },
+          "cell_color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.set_camera",
+      "description": "Position camera (ortho/perspective). Use zoom_all=true to auto-fit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ORTHO",
+              "PERSPECTIVE"
+            ]
+          },
+          "direction": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "fov": {
+            "type": "number"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "up": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "zoom_all": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.configure_vis_element",
+      "description": "Configure any visual element: particles, bonds, cell, surface, dislocations, vectors, lines, voxel_grid, triangle_mesh.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "element": {
+            "type": "string",
+            "enum": [
+              "particles",
+              "bonds",
+              "cell",
+              "surface",
+              "dislocations",
+              "vectors",
+              "lines",
+              "voxel_grid",
+              "triangle_mesh"
+            ]
+          },
+          "properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "handle",
+          "element"
+        ]
+      }
+    },
+    {
+      "name": "ovito.add_overlay",
+      "description": "Add viewport overlay: color_legend, text_label, coordinate_tripod, or python_overlay (custom drawing with code property).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "overlay_type": {
+            "type": "string",
+            "enum": [
+              "color_legend",
+              "text_label",
+              "coordinate_tripod",
+              "python_overlay"
+            ]
+          },
+          "properties": {
+            "type": "object",
+            "description": "Overlay properties. python_overlay accepts 'code'."
+          }
+        },
+        "required": [
+          "handle",
+          "overlay_type"
+        ]
+      }
+    },
+    {
+      "name": "ovito.render_image",
+      "description": "Render scene to PNG/TIFF using Tachyon, OSPRay, or ANARI ray-tracers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "output_file": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "background": {
+            "type": "string"
+          },
+          "transparent_background": {
+            "type": "boolean"
+          },
+          "renderer": {
+            "type": "string",
+            "enum": [
+              "tachyon",
+              "ospray",
+              "anari"
+            ]
+          },
+          "antialiasing": {
+            "type": "boolean"
+          },
+          "antialiasing_samples": {
+            "type": "integer"
+          },
+          "shadows": {
+            "type": "boolean"
+          },
+          "ambient_occlusion": {
+            "type": "boolean"
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.render_animation",
+      "description": "Render animation (GIF/AVI/MP4) from trajectory.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "output_file": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "fps": {
+            "type": "integer"
+          },
+          "start_frame": {
+            "type": "integer"
+          },
+          "end_frame": {
+            "type": "integer"
+          },
+          "every_nth_frame": {
+            "type": "integer"
+          },
+          "renderer": {
+            "type": "string",
+            "enum": [
+              "tachyon",
+              "ospray",
+              "anari"
+            ]
+          },
+          "antialiasing": {
+            "type": "boolean"
+          },
+          "shadows": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "ovito.render_multi_pipeline",
+      "description": "Render multiple pipelines together in a single scene.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "handles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of pipeline handles."
+          },
+          "output_file": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "background": {
+            "type": "string"
+          },
+          "transparent_background": {
+            "type": "boolean"
+          },
+          "renderer": {
+            "type": "string",
+            "enum": [
+              "tachyon",
+              "ospray",
+              "anari"
+            ]
+          },
+          "frame": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "handles"
+        ]
       }
     }
   ]
