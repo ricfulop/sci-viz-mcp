@@ -81,29 +81,50 @@ one-line Python through the Foundation server's execute-Python surface.
 **Setup (one-time):**
 
 ```bash
-# 1. Install the Foundation MCP server + add-on
-#    https://www.blender.org/lab/mcp-server/  (requires Blender 5.1+)
-#    - drag the install link into Blender twice (adds repo, installs add-on)
-#    - then enable the add-on and start the server inside Blender
+# 1. Install the Foundation MCP add-on inside Blender 5.1+.
+#    Open https://www.blender.org/lab/mcp-server/ and drag the install
+#    link into Blender twice: first adds the lab.blender.org repository,
+#    second installs the add-on. Enable it in Edit > Preferences > Add-ons.
 
-# 2. Install the SciViz add-on into Blender 5.1 user extensions
+# 2. Install the Foundation MCP *server* (the stdio bridge between
+#    Cursor and Blender). Clones the source repo and pip-installs into
+#    ./blender_mcp_foundation/.venv .
 cd /Users/ricfulop/voltivity/sci-viz-mcp
+./install_blender_foundation_mcp.sh
+
+# 3. Install the SciViz add-on into Blender's user extensions
 ./install_sciviz_addon.sh                 # symlink (live editing)
 # or  ./install_sciviz_addon.sh --copy     # one-shot copy
 
-# 3. ASE / numpy in Blender's bundled Python (one-time)
+# 4. ASE / numpy in Blender's bundled Python (one-time)
 /Applications/Blender.app/Contents/Resources/5.1/python/bin/python3.* \
     -m pip install ase numpy
 
-# 4. In Blender, enable both add-ons and connect the MCP server.
+# 5. Drop the snippet from step 2 into ~/.cursor/mcp.json under the
+#    `blender` key, then reload Cursor's MCP servers.
+
+# 6. In Blender, the BlenderMCP sidebar tab (View3D > N) shows a
+#    "Connect" / status indicator. Once connected, calls from Cursor
+#    flow through the Foundation server into Blender's bpy.
 ```
 
-The `~/.cursor/mcp.json` `blender` entry currently launches the community
-`uvx blender-mcp` package because Cursor doesn't yet natively load `.mcpb`
-bundles; it speaks the same TCP/9876 protocol the Foundation server uses,
-so the SciViz add-on works through either transport. Migrate to the
-Foundation server's stdio entry-point as soon as Cursor supports it
-(no changes needed on the add-on side).
+The Cursor → Blender path is now:
+
+```
+Cursor ─stdio─▶ blender_mcp_foundation/.venv/bin/blender-mcp
+                       │
+                  TCP :9876
+                       ▼
+               Blender 5.1+ with
+                  ├── Foundation MCP add-on (lab.blender.org repo)
+                  └── SciViz add-on (sciviz_blender_addon/)
+                        registers bpy.ops.sciviz.*
+```
+
+Both server and add-on come from the Blender Foundation, so the protocol
+matches end-to-end. The community `uvx blender-mcp` (ahujasid) used to
+work in earlier setups but its command vocabulary disagrees with the
+Foundation add-on's, so don't mix them.
 
 ### comsol_viz_mcp (6 tools)
 Publication-quality visualization of COMSOL field exports.
