@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "sciviz"
-version = "0.2.0"
+version = "0.3.0"
 name = "SciViz"
 tagline = "Crystal import, publication presets, and HQ Cycles renders for scientific figures"
 maintainer = "voltivity sci-viz-mcp"

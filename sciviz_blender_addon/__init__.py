@@ -21,7 +21,7 @@ from __future__ import annotations
 bl_info = {
     "name": "SciViz",
     "author": "voltivity sci-viz-mcp",
-    "version": (0, 2, 0),
+    "version": (0, 3, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > SciViz",
     "description": "Crystal import, publication presets, and HQ Cycles renders for scientific figures",
