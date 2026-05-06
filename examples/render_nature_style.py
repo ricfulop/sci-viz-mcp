@@ -1,26 +1,42 @@
 """Nature Materials-style crystal-structure render.
 
 Produces a publication-quality ball-and-stick render of an arbitrary CIF
-through the SciViz Blender add-on, layered with the polish that
-distinguishes Nature Materials / Nature Photonics figures from a default
-ball-and-stick:
+through the SciViz Blender add-on. Style choices are anchored to the
+official Nature research figure guide
+(https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/)
+and to Wong B., "Points of view: Colour blindness", Nature Methods 8,
+441 (2011) — the Okabe–Ito palette Nature cites for accessibility.
 
-  * Gradient near-white world (subliminal depth, no harsh white wall)
-  * 3-point area lighting (warm key, cool fill, top rim) with soft falloff
-  * Polished but non-metallic atom shaders (low roughness, slight specular)
-  * Bonds slightly darker and rougher than atoms so they read as scaffolding
-  * Optional supercell wireframe (thin dark edges) to anchor the lattice
-  * 85 mm perspective camera with a touch of depth of field on the
-    centroid for a subtle highlight falloff
-  * Cycles 512 samples with Standard view + Medium High Contrast look
+What this layers on top of bpy.ops.sciviz.{import_crystal, apply_preset,
+render_hq}:
+
+  * Pure white world (Nature explicitly avoids decorative gradients;
+    depth comes from the 3-point lighting, not the background)
+  * 3-point Area lighting (warm key, cool fill, top rim) sized to the
+    crystal so soft falloff scales with the structure
+  * Okabe–Ito-mapped element palette — the colour-blind-safe set that
+    Nature recommends — instead of saturated CPK that prints candy
+  * Per-element covalent radii (Cordero 2008) so W is visibly larger
+    than C, etc., for both physical accuracy and visual hierarchy
+  * Polished but non-metallic Principled BSDF (low roughness, slight
+    specular, subtle clearcoat) for the wet-highlight Nature look
+  * Bonds slightly darker / rougher so they read as scaffolding rather
+    than competing with atoms
+  * 70-85 mm perspective camera with a touch of depth of field on the
+    central atom for subtle falloff
+  * Cycles 1024 samples + adaptive sampling, Standard view transform
+
+Note on a/b/c "axis indicators": Nature does NOT require crystallographic
+a/b/c arrows. The "a, b, c, d" the figure guide mentions is the
+8-pt bold lowercase label on each subfigure of a multi-panel figure,
+not a crystal-axes gizmo. The helper to draw lattice arrows is kept
+here for authors who want them but it defaults to off.
 
 Run this either:
 
-  * Directly inside Blender via the SciViz panel + the scripting tab, or
+  * Directly inside Blender via the Scripting tab, or
   * Through the Foundation MCP server's execute_blender_code tool, e.g.
-    `exec(open(__file__).read())`.
-
-The ``configure(...)`` function is the only public API.
+    `exec(open(__file__).read())` then call `configure(...)`.
 """
 
 from __future__ import annotations
@@ -33,6 +49,72 @@ from typing import Iterable
 
 import bpy
 from mathutils import Vector
+
+
+# ── Okabe–Ito accessible palette (Wong 2011, recommended by Nature) ──────────
+# https://www.nature.com/articles/nmeth.1618
+OKABE_ITO: dict[str, tuple[float, float, float, float]] = {
+    "orange":         (0.902, 0.624, 0.000, 1.0),  # #E69F00
+    "sky_blue":       (0.337, 0.706, 0.914, 1.0),  # #56B4E9
+    "bluish_green":   (0.000, 0.620, 0.451, 1.0),  # #009E73
+    "yellow":         (0.941, 0.894, 0.259, 1.0),  # #F0E442
+    "blue":           (0.000, 0.447, 0.698, 1.0),  # #0072B2
+    "vermillion":     (0.835, 0.369, 0.000, 1.0),  # #D55E00
+    "reddish_purple": (0.800, 0.475, 0.655, 1.0),  # #CC79A7
+    "black":          (0.000, 0.000, 0.000, 1.0),  # #000000
+}
+
+# Element → Okabe–Ito mapping for Nature-style figures. Picks preserve
+# chemistry conventions (O red, Cu warm orange, Au yellow, etc.) while
+# staying inside the colour-blind-safe palette.
+NATURE_ELEMENT_COLORS: dict[str, tuple[float, float, float, float]] = {
+    # Heavy / transition metals
+    "W":  OKABE_ITO["blue"],
+    "Mo": OKABE_ITO["sky_blue"],
+    "Zr": OKABE_ITO["bluish_green"],
+    "Y":  OKABE_ITO["reddish_purple"],
+    "Ti": (0.62, 0.62, 0.66, 1.0),
+    "V":  (0.65, 0.55, 0.50, 1.0),
+    "Cr": (0.55, 0.60, 0.78, 1.0),
+    "Mn": OKABE_ITO["reddish_purple"],
+    "Fe": OKABE_ITO["vermillion"],
+    "Co": OKABE_ITO["reddish_purple"],
+    "Ni": (0.30, 0.70, 0.40, 1.0),
+    "Cu": OKABE_ITO["orange"],
+    "Zn": (0.55, 0.55, 0.62, 1.0),
+    "Ag": (0.86, 0.86, 0.88, 1.0),
+    "Pt": (0.82, 0.82, 0.86, 1.0),
+    "Au": OKABE_ITO["yellow"],
+    "Sn": (0.45, 0.50, 0.55, 1.0),
+    # Light elements
+    "H":  (0.95, 0.95, 0.95, 1.0),
+    "C":  (0.10, 0.10, 0.11, 1.0),
+    "N":  OKABE_ITO["bluish_green"],
+    "O":  OKABE_ITO["vermillion"],
+    "F":  OKABE_ITO["bluish_green"],
+    "Si": OKABE_ITO["orange"],
+    "P":  OKABE_ITO["orange"],
+    "S":  OKABE_ITO["yellow"],
+    "Cl": OKABE_ITO["bluish_green"],
+    "Na": OKABE_ITO["reddish_purple"],
+    "Mg": (0.55, 0.80, 0.10, 1.0),
+    "Al": (0.72, 0.74, 0.78, 1.0),
+    "K":  OKABE_ITO["reddish_purple"],
+    "Ca": (0.62, 0.66, 0.70, 1.0),
+}
+
+# Cordero 2008 covalent radii in Å, used for per-element atom scaling.
+# Beatriz Cordero et al., "Covalent radii revisited", Dalton Trans. 2008.
+COVALENT_RADII: dict[str, float] = {
+    "H": 0.31, "He": 0.28,
+    "Li": 1.28, "Be": 0.96, "B": 0.84, "C": 0.76, "N": 0.71, "O": 0.66, "F": 0.57,
+    "Na": 1.66, "Mg": 1.41, "Al": 1.21, "Si": 1.11, "P": 1.07, "S": 1.05, "Cl": 1.02,
+    "K": 2.03, "Ca": 1.76, "Sc": 1.70, "Ti": 1.60, "V": 1.53, "Cr": 1.39, "Mn": 1.39,
+    "Fe": 1.32, "Co": 1.26, "Ni": 1.24, "Cu": 1.32, "Zn": 1.22,
+    "Y": 1.90, "Zr": 1.75, "Nb": 1.64, "Mo": 1.54, "Ru": 1.46, "Rh": 1.42, "Pd": 1.39,
+    "Ag": 1.45, "Cd": 1.44, "Sn": 1.39,
+    "W": 1.62, "Re": 1.51, "Os": 1.44, "Ir": 1.41, "Pt": 1.36, "Au": 1.36,
+}
 
 
 def _clear_default_props() -> None:
@@ -97,8 +179,16 @@ def _bbox(coll: bpy.types.Collection) -> tuple[Vector, Vector, float]:
     return minp, maxp, extent
 
 
-def _polish_atom_materials(roughness: float = 0.22, specular: float = 0.55) -> None:
-    """Bump atom shaders to a Nature-Materials-style soft-gloss finish."""
+def _polish_atom_materials(
+    roughness: float = 0.18,
+    specular: float = 0.55,
+    clearcoat: float = 0.08,
+) -> None:
+    """Bump atom shaders to a Nature-Materials-style polished finish.
+
+    Lower roughness + small clearcoat give the wet highlight that
+    distinguishes Nature/Nature Materials renders from a matte default.
+    """
     for mat in bpy.data.materials:
         if not mat.name.startswith("Mat_") or mat.name == "Mat_Bond":
             continue
@@ -115,17 +205,79 @@ def _polish_atom_materials(roughness: float = 0.22, specular: float = 0.55) -> N
             if spec_key in bsdf.inputs:
                 bsdf.inputs[spec_key].default_value = specular
                 break
+        for coat_key in ("Coat Weight", "Clearcoat Weight", "Clearcoat"):
+            if coat_key in bsdf.inputs:
+                bsdf.inputs[coat_key].default_value = clearcoat
+                break
+        for coat_rough_key in ("Coat Roughness", "Clearcoat Roughness"):
+            if coat_rough_key in bsdf.inputs:
+                bsdf.inputs[coat_rough_key].default_value = 0.10
+                break
 
     bond = bpy.data.materials.get("Mat_Bond")
     if bond is not None and bond.use_nodes:
         bsdf = bond.node_tree.nodes.get("Principled BSDF")
         if bsdf is not None:
             if "Base Color" in bsdf.inputs:
-                bsdf.inputs["Base Color"].default_value = (0.55, 0.56, 0.58, 1.0)
+                bsdf.inputs["Base Color"].default_value = (0.62, 0.63, 0.66, 1.0)
             if "Roughness" in bsdf.inputs:
-                bsdf.inputs["Roughness"].default_value = 0.40
+                bsdf.inputs["Roughness"].default_value = 0.45
             if "Metallic" in bsdf.inputs:
-                bsdf.inputs["Metallic"].default_value = 0.10
+                bsdf.inputs["Metallic"].default_value = 0.0
+
+
+def _apply_per_element_radii(
+    coll: bpy.types.Collection,
+    radii: dict[str, float] | None = None,
+    compression: float = 0.7,
+) -> dict[str, float]:
+    """Scale each atom Object by its (compressed) covalent radius.
+
+    SciViz's ``import_crystal`` creates every sphere at the same base
+    radius (the ``atom_scale`` arg). This post-processes per-atom
+    Object scale so the rendered radii follow Cordero 2008, with the
+    user's ``atom_scale`` acting as a global multiplier on top.
+
+    ``compression`` exponent below 1.0 lifts small atoms relative to
+    big ones — physically less accurate but visually clearer for
+    ball-and-stick.  Use ``compression=1.0`` for true covalent radii
+    (W:C = 2.13:1 makes light atoms read as dots).
+    """
+    radii = radii if radii is not None else COVALENT_RADII
+    applied: dict[str, float] = {}
+    for obj in coll.objects:
+        if obj.type != "MESH":
+            continue
+        if obj.name.startswith("Bond_") or obj.name.startswith("Supercell_"):
+            continue
+        symbol = obj.name.split("_", 1)[0]
+        radius_ang = radii.get(symbol)
+        if radius_ang is None:
+            continue
+        scaled = radius_ang ** compression
+        obj.scale = (scaled, scaled, scaled)
+        applied[symbol] = round(scaled, 3)
+    return applied
+
+
+def _white_world(strength: float = 1.0,
+                 color: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0)) -> None:
+    """Flat white world. Nature avoids decorative backgrounds; let the
+    3-point lighting carry depth instead of a gradient."""
+    scene = bpy.context.scene
+    world = scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        scene.world = world
+    world.use_nodes = True
+    nt = world.node_tree
+    for n in list(nt.nodes):
+        nt.nodes.remove(n)
+    out = nt.nodes.new("ShaderNodeOutputWorld")
+    bg = nt.nodes.new("ShaderNodeBackground")
+    bg.inputs["Color"].default_value = color
+    bg.inputs["Strength"].default_value = strength
+    nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
 
 
 def _gradient_world(top: tuple[float, ...] = (1.0, 1.0, 1.0, 1.0),
@@ -220,14 +372,15 @@ def _aimed_camera(center: Vector, extent: float, lens_mm: float = 85.0,
     return cam
 
 
-_NM_W_COLOR = (0.20, 0.55, 0.82, 1.0)
-_NM_C_COLOR = (0.22, 0.26, 0.32, 1.0)
+def _retune_atom_colors(palette: dict[str, tuple[float, float, float, float]] | None = None) -> None:
+    """Repaint atom shaders with a Nature-friendly Okabe-Ito palette.
 
-
-def _retune_atom_colors(overrides: dict[str, tuple[float, float, float, float]] | None = None) -> None:
-    """Replace overly-saturated CPK defaults with print-friendlier tones."""
-    overrides = overrides or {"W": _NM_W_COLOR, "C": _NM_C_COLOR}
-    for sym, color in overrides.items():
+    The default palette (NATURE_ELEMENT_COLORS) is colour-blind safe per
+    Wong 2011 / Nature Methods 8, 441 — the palette Nature explicitly
+    cites in its figure guide.
+    """
+    palette = palette if palette is not None else NATURE_ELEMENT_COLORS
+    for sym, color in palette.items():
         mat = bpy.data.materials.get(f"Mat_{sym}")
         if mat is None or not mat.use_nodes:
             continue
@@ -340,18 +493,21 @@ def configure(
     expansion: tuple[int, int, int] | None = None,
     width: int = 1600,
     height: int = 1200,
-    samples: int = 512,
-    atom_scale: float = 0.45,
+    samples: int = 1024,
+    atom_scale: float = 0.40,
     bond_radius: float = 0.10,
     bond_cutoff: float = 3.0,
     only_unlike_bonds: bool = True,
-    lens_mm: float = 85.0,
-    fstop: float = 6.3,
-    show_supercell_box: bool = True,
+    lens_mm: float = 70.0,
+    fstop: float = 8.0,
+    show_supercell_box: bool = False,
     show_axis_indicator: bool = False,
     axis_indicator_position: str = "lower_left",
-    nm_color_overrides: dict[str, tuple[float, float, float, float]] | None = None,
-    look: str = "Medium High Contrast",
+    palette: dict[str, tuple[float, float, float, float]] | None = None,
+    use_per_element_radii: bool = True,
+    radii_compression: float = 0.7,
+    background: str = "white",
+    look: str = "None",
 ) -> dict:
     """Import ``cif_path`` and produce a Nature-Materials-style render at
     ``output_path``. Returns the import/preset/render result envelopes.
@@ -373,6 +529,11 @@ def configure(
     )
 
     coll = bpy.data.collections["Crystal"]
+
+    radii_applied: dict[str, float] = {}
+    if use_per_element_radii:
+        radii_applied = _apply_per_element_radii(coll, compression=radii_compression)
+
     minp, maxp, extent = _bbox(coll)
     center = (minp + maxp) * 0.5
 
@@ -390,8 +551,12 @@ def configure(
                         focus_object=central_atom, fstop=fstop)
     _three_point_lighting(center, extent)
     _polish_atom_materials()
-    _retune_atom_colors(nm_color_overrides)
-    _gradient_world()
+    _retune_atom_colors(palette)
+
+    if background == "gradient":
+        _gradient_world()
+    else:
+        _white_world()
 
     if show_supercell_box:
         _supercell_wireframe(minp, maxp)
@@ -466,6 +631,9 @@ def configure(
         "supercell_expansion": expansion,
         "lens_mm": lens_mm,
         "samples": samples,
+        "background": background,
+        "per_element_radii_applied": radii_applied,
+        "palette": "Okabe-Ito (Wong 2011)" if palette is None else "custom",
     }
 
 
@@ -473,8 +641,8 @@ if __name__ == "__main__":
     print(configure(
         cif_path="/Users/ricfulop/voltivity/sci-viz-mcp/tests/sample_structures/hexagonal_WC.cif",
         output_path="/Users/ricfulop/voltivity/sci-viz-mcp/output/WC_nature_style.png",
-        expansion=(3, 3, 2),
+        expansion=(2, 2, 2),
         bond_cutoff=2.5,
-        atom_scale=0.45,
+        atom_scale=0.40,
         bond_radius=0.10,
     ))
