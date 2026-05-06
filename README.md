@@ -9,7 +9,9 @@ Cursor IDE (any chat, any repo)
   │
   ├── crystal_mcp ──── ASE + pymatgen ──── lattice diagrams, TikZ, defects
   ├── ovito_mcp ────── OVITO Python API ── atomistic rendering (Tachyon)
-  ├── blender_mcp ──── Blender 4.x ────── photorealistic 3D (Cycles)
+  ├── blender ──────── official Blender ── stdio MCP ⇄ TCP :9876 ⇄ Blender
+  │                    Foundation MCP        add-on (sciviz_blender_addon
+  │                    server                registers bpy.ops.sciviz.*)
   ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
   │
   └── styles.py ────── APS / Nature rcParams, Okabe-Ito palette, column widths
@@ -49,18 +51,59 @@ Headless atomistic visualization via OVITO Python API.
 | `ovito.pipeline_status` | Inspect pipeline state |
 | `ovito.list_pipelines` | List active pipelines |
 
-### blender_mcp (7 tools)
-Photorealistic 3D rendering via Blender + Cycles.
+### blender (official Blender Foundation MCP server + SciViz add-on)
+Photorealistic 3D rendering via Blender + Cycles. Refactored in May 2026 to
+use the [official Blender Foundation MCP server](https://www.blender.org/lab/mcp-server/)
+released by the Blender devs in partnership with Anthropic, instead of a
+custom socket protocol.
 
-| Tool | Description |
-|------|-------------|
-| `blender.ping` | Check Blender connectivity |
-| `blender.import_crystal` | CIF → ball-and-stick with CPK materials |
-| `blender.set_science_preset` | white_clean, soft_shadow, perspective_depth, dark_presentation |
-| `blender.render_hq` | Cycles render at specified resolution |
-| `blender.add_annotation_3d` | 3D text labels |
-| `blender.execute_code` | Arbitrary Blender Python |
-| `blender.get_scene_info` | Scene inspection |
+```
+Cursor ──MCP/stdio──▶ blender-mcp ──TCP :9876──▶ Blender (5.1+)
+                                                  ├── Foundation MCP add-on (transport)
+                                                  └── SciViz add-on (sciviz_blender_addon/)
+                                                        registers bpy.ops.sciviz.*
+```
+
+Science vocabulary lives inside Blender as proper operators, so it persists
+across sessions, shows up as buttons in the SciViz N-panel, and is callable
+from any MCP client (Cursor, Claude Desktop, Claude Code, ...) by writing
+one-line Python through the Foundation server's execute-Python surface.
+
+**SciViz operators (registered by `sciviz_blender_addon/`):**
+
+| Operator | Description |
+|----------|-------------|
+| `bpy.ops.sciviz.import_crystal(filepath=...)` | CIF / POSCAR / XYZ → ball-and-stick with CPK materials. Uses ASE if installed in Blender's Python, falls back to pymatgen. |
+| `bpy.ops.sciviz.apply_preset(preset=...)` | `WHITE_CLEAN` / `SOFT_SHADOW` / `PERSPECTIVE_DEPTH` / `DARK_PRESENTATION` |
+| `bpy.ops.sciviz.render_hq(filepath=..., width=..., height=..., samples=...)` | Cycles render with 16-bit PNG output and live-preview ping |
+| `bpy.ops.sciviz.add_annotation_3d(text=..., location_x=..., ...)` | 3D text label, optionally parented to the Crystal collection |
+
+**Setup (one-time):**
+
+```bash
+# 1. Install the Foundation MCP server + add-on
+#    https://www.blender.org/lab/mcp-server/  (requires Blender 5.1+)
+#    - drag the install link into Blender twice (adds repo, installs add-on)
+#    - then enable the add-on and start the server inside Blender
+
+# 2. Install the SciViz add-on into Blender 5.1 user extensions
+cd /Users/ricfulop/voltivity/sci-viz-mcp
+./install_sciviz_addon.sh                 # symlink (live editing)
+# or  ./install_sciviz_addon.sh --copy     # one-shot copy
+
+# 3. ASE / numpy in Blender's bundled Python (one-time)
+/Applications/Blender.app/Contents/Resources/5.1/python/bin/python3.* \
+    -m pip install ase numpy
+
+# 4. In Blender, enable both add-ons and connect the MCP server.
+```
+
+The `~/.cursor/mcp.json` `blender` entry currently launches the community
+`uvx blender-mcp` package because Cursor doesn't yet natively load `.mcpb`
+bundles; it speaks the same TCP/9876 protocol the Foundation server uses,
+so the SciViz add-on works through either transport. Migrate to the
+Foundation server's stdio entry-point as soon as Cursor supports it
+(no changes needed on the add-on side).
 
 ### comsol_viz_mcp (6 tools)
 Publication-quality visualization of COMSOL field exports.

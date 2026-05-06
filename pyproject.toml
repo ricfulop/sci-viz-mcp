@@ -1,7 +1,7 @@
 [project]
 name = "sci-viz-mcp"
-version = "0.1.0"
-description = "MCP servers for scientific visualization: crystal structures (ASE/pymatgen), atomistic rendering (OVITO), and 3D rendering (Blender)"
+version = "0.2.0"
+description = "MCP servers for scientific visualization: crystal structures (ASE/pymatgen), atomistic rendering (OVITO), Blender via the official Blender Foundation MCP server, and COMSOL field maps"
 requires-python = ">=3.10"
 dependencies = [
     "ase",
@@ -13,6 +13,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-blender = ["blender-mcp"]
 preview = ["aiohttp"]
 dev = ["pytest"]
+
+# The Blender side is now handled by the official Blender Foundation MCP
+# server (https://www.blender.org/lab/mcp-server/) plus the SciViz add-on
+# under sciviz_blender_addon/. There is no Python package to depend on
+# from this venv — Blender bundles its own Python.

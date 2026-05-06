@@ -1,0 +1,22 @@
+schema_version = "1.0.0"
+
+id = "sciviz"
+version = "0.2.0"
+name = "SciViz"
+tagline = "Crystal import, publication presets, and HQ Cycles renders for scientific figures"
+maintainer = "voltivity sci-viz-mcp"
+type = "add-on"
+
+website = "https://github.com/voltivity/sci-viz-mcp"
+
+tags = ["3D View", "Render", "Scene", "Import-Export"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+# Pure-Python add-on. ASE / numpy are expected to live in Blender's bundled
+# Python (install with `<blender-python> -m pip install ase numpy`).
+# All operators are designed to be driven either by hand from the SciViz
+# sidebar panel or remotely by an MCP client (e.g. the official Blender
+# Foundation MCP server) via `bpy.ops.sciviz.*`.
