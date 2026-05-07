@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-Panel D — Ostwald Ripening: 3-stage triptych.
+Panel D — Ostwald Ripening: stage-specific renders with explicit scale separation.
 
-All stages show the FULL fluorite lattice as a faded transparent backdrop
-(Zr=blue ghost, O=red ghost) so you see what's NOT there.
-Vacancy channels rendered as bright cyan spheres on top.
-
-Stage 1: Thin cyan vacancy sheets at acoustic antinodes
-Stage 2: LSW coarsening — sheets thicken into cyan clusters
-Stage 3: Dense interconnected dendritic cyan channels (200 nm scale)
+Stage 1 and Stage 2 are compact seed/coarsening views.
+Stage 3 is rendered from a dedicated wide supercell so the dendritic network
+reads as a larger-scale vein morphology instead of a blown-up crop.
 """
 
 import sys
@@ -25,9 +21,9 @@ CIF_DIR = ROOT / "tests" / "sample_structures"
 OUT_DIR = ROOT / "output"
 OUT_DIR.mkdir(exist_ok=True)
 
-CYAN = [0.0, 0.75, 0.85]
-ZR_GHOST = [0.29, 0.53, 0.78]
-O_GHOST = [0.91, 0.30, 0.24]
+CYAN = [0.0, 0.75, 0.90]
+ZR_GHOST = [0.15, 0.40, 0.82]
+O_GHOST = [0.88, 0.22, 0.18]
 
 atoms = ase.io.read(str(CIF_DIR / "fluorite_ZrO2.cif"))
 a_f = 5.145
@@ -53,7 +49,7 @@ def build_stage(repeats, vacancy_mask_fn, name):
 
     o_mask = sym == "O"
     o_pos = pos[o_mask]
-    vac_flags = vacancy_mask_fn(o_pos)
+    vac_flags = vacancy_mask_fn(o_pos, cx, cy, cz)
 
     # Build combined position array with type labels
     all_pos = []
@@ -95,63 +91,124 @@ def build_stage(repeats, vacancy_mask_fn, name):
 
 np.random.seed(42)
 
-# Stage 1: Thin vacancy sheets at acoustic antinodes
-def vac_stage1(o_pos):
-    phases = np.sin(2 * np.pi * o_pos[:, 0] / wavelength)
-    return phases > 0.85
+def _z_slab(o_pos, cz, z_lo_frac, z_hi_frac):
+    return ((o_pos[:, 2] > z_lo_frac * cz) &
+            (o_pos[:, 2] < z_hi_frac * cz))
 
-f1, cx1, cy1, cz1, types1 = build_stage([8, 8, 2], vac_stage1, "d_s1")
 
-# Stage 2: LSW coarsening — wider antinodes + spherical cluster growth
-def vac_stage2(o_pos):
-    phases = np.sin(2 * np.pi * o_pos[:, 0] / wavelength)
-    mask = phases > 0.8
-    # Grow clusters from seeds within antinode regions
-    antinode_idx = np.where(phases > 0.6)[0]
-    if len(antinode_idx) > 0:
-        seeds = antinode_idx[np.random.choice(len(antinode_idx),
-                             size=min(20, len(antinode_idx)), replace=False)]
+def _paint_segment_mask(mask, points, p0, p1, radius):
+    """Fill points lying within `radius` of a line segment."""
+    seg = p1 - p0
+    seg_norm2 = float(np.dot(seg, seg))
+    if seg_norm2 < 1e-10:
+        return
+    rel = points - p0
+    t = np.clip((rel @ seg) / seg_norm2, 0.0, 1.0)
+    closest = p0 + t[:, None] * seg
+    d2 = np.sum((points - closest) ** 2, axis=1)
+    mask[d2 <= radius ** 2] = True
+
+
+def _paint_sphere_mask(mask, points, center, radius):
+    d2 = np.sum((points - center) ** 2, axis=1)
+    mask[d2 <= radius ** 2] = True
+
+
+# Stage 1: discrete seed array at antinode intersections in a narrow
+# bottom slab. This reads as the commensurate nucleation template rather
+# than a continuous slab.
+def vac_stage1(o_pos, cx, cy, cz):
+    phase_x = np.abs(np.sin(2 * np.pi * o_pos[:, 0] / wavelength))
+    phase_y = np.abs(np.sin(2 * np.pi * o_pos[:, 1] / wavelength))
+    slab = _z_slab(o_pos, cz, 0.05, 0.22)
+    return (phase_x > 0.92) & (phase_y > 0.45) & slab
+
+
+f1, cx1, cy1, cz1, types1 = build_stage([5, 5, 3], vac_stage1, "d_s1")
+
+
+# Stage 2: LSW coarsening of the commensurate seeds into thicker bottom
+# clusters occupying the lower third of the cell.
+def vac_stage2(o_pos, cx, cy, cz):
+    slab = _z_slab(o_pos, cz, 0.04, 0.40)
+    seed_mask = vac_stage1(o_pos, cx, cy, cz)
+    mask = seed_mask.copy()
+    seed_idx = np.where(seed_mask)[0]
+    if len(seed_idx) > 0:
+        seeds = seed_idx[np.random.choice(
+            len(seed_idx),
+            size=min(24, len(seed_idx)),
+            replace=False)]
         for s in seeds:
             dists = np.linalg.norm(o_pos - o_pos[s], axis=1)
-            mask[dists < 4.5] = True
+            mask[(dists < 4.8) & slab] = True
     return mask
 
-f2, cx2, cy2, cz2, types2 = build_stage([8, 8, 3], vac_stage2, "d_s2")
 
-# Stage 3: Dense interconnected dendritic channels
-def vac_stage3(o_pos):
-    n = len(o_pos)
-    mask = np.zeros(n, dtype=bool)
+f2, cx2, cy2, cz2, types2 = build_stage([7, 7, 4], vac_stage2, "d_s2")
+
+
+# Stage 3: sparse interconnected dendritic channels spanning the volume.
+# The morphology should read as ~200 nm veins rather than a uniform blob.
+def vac_stage3(o_pos, cx, cy, cz):
+    mask = np.zeros(len(o_pos), dtype=bool)
     directions = [
-        np.array([1, 1, 0]) / np.sqrt(2),
-        np.array([1, -1, 0]) / np.sqrt(2),
-        np.array([1, 0, 1]) / np.sqrt(2),
-        np.array([0, 1, 1]) / np.sqrt(2),
-        np.array([1, 0, -1]) / np.sqrt(2),
-        np.array([0, 1, -1]) / np.sqrt(2),
+        np.array([1.0, 1.0, 0.3]),
+        np.array([1.0, -1.0, 0.4]),
+        np.array([0.7, 0.2, 1.0]),
+        np.array([0.2, 0.8, 1.0]),
+        np.array([1.0, 0.3, -0.5]),
+        np.array([0.4, 1.0, -0.3]),
     ]
-    # Interconnected trunks along [110] with controlled branching
-    for _ in range(6):
-        start = o_pos[np.random.randint(n)]
-        d = directions[np.random.randint(len(directions))]
-        for t in np.linspace(0, 30, 200):
-            point = start + t * d
-            dists = np.linalg.norm(o_pos - point, axis=1)
-            mask[dists < 2.0] = True
-        branch_sites = np.where(mask)[0]
-        if len(branch_sites) > 8:
-            for bi in branch_sites[::8]:
-                bd = directions[np.random.randint(len(directions))]
-                bd = bd + np.random.randn(3) * 0.3
-                bd /= np.linalg.norm(bd)
-                bp = o_pos[bi]
-                for t in np.linspace(0, 12, 60):
-                    point = bp + t * bd
-                    dists = np.linalg.norm(o_pos - point, axis=1)
-                    mask[dists < 1.8] = True
+    directions = [d / np.linalg.norm(d) for d in directions]
+
+    seed_region = _z_slab(o_pos, cz, 0.12, 0.42)
+    phase_x = np.abs(np.sin(2 * np.pi * o_pos[:, 0] / wavelength))
+    phase_y = np.abs(np.sin(2 * np.pi * o_pos[:, 1] / wavelength))
+    seed_candidates = np.where(seed_region & (phase_x > 0.62) & (phase_y > 0.30))[0]
+    if len(seed_candidates) == 0:
+        seed_candidates = np.where(seed_region)[0]
+
+    span = max(cx, cy, cz)
+    trunk_len = 0.72 * span
+    branch_len = 0.34 * span
+    twig_len = 0.18 * span
+    trunk_radius = 4.85
+    branch_radius = 3.80
+    twig_radius = 2.85
+    node_radius = 4.70
+
+    chosen = seed_candidates[np.linspace(
+        0, len(seed_candidates) - 1,
+        min(10, len(seed_candidates)), dtype=int)]
+
+    for i, seed in enumerate(chosen):
+        start = o_pos[seed]
+        trunk_dir = directions[i % len(directions)]
+        trunk_end = start + trunk_len * trunk_dir
+        _paint_segment_mask(mask, o_pos, start, trunk_end, trunk_radius)
+        _paint_sphere_mask(mask, o_pos, start, node_radius)
+
+        # Branches at downstream junctions to create a vein-like network.
+        for frac, j in [(0.18, 1), (0.34, 2), (0.50, 3), (0.66, 1), (0.82, 2)]:
+            t0 = frac * trunk_len
+            branch_origin = start + t0 * trunk_dir
+            _paint_sphere_mask(mask, o_pos, branch_origin, node_radius)
+            branch_dir = directions[(i + j) % len(directions)]
+            branch_dir = branch_dir + np.random.randn(3) * 0.10
+            branch_dir /= np.linalg.norm(branch_dir)
+            branch_end = branch_origin + branch_len * branch_dir
+            _paint_segment_mask(mask, o_pos, branch_origin, branch_end, branch_radius)
+
+            twig_origin = branch_origin + 0.55 * branch_len * branch_dir
+            twig_dir = directions[(i + j + 2) % len(directions)] + np.random.randn(3) * 0.12
+            twig_dir /= np.linalg.norm(twig_dir)
+            twig_end = twig_origin + twig_len * twig_dir
+            _paint_segment_mask(mask, o_pos, twig_origin, twig_end, twig_radius)
     return mask
 
-f3, cx3, cy3, cz3, types3 = build_stage([8, 8, 8], vac_stage3, "d_s3")
+
+f3, cx3, cy3, cz3, types3 = build_stage([14, 10, 6], vac_stage3, "d_s3")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -202,17 +259,17 @@ def style_with_ghosts(types_arr):
         transp = np.zeros(n)
         for i in range(n):
             t = types_copy[i]
-            if t == 1:      # Zr ghost
+            if t == 1:      # Zr — saturated blue
                 colors[i] = ZR_GHOST
-                radii[i] = 0.18
-                transp[i] = 0.82
-            elif t == 2:    # O occupied ghost
+                radii[i] = 0.50
+                transp[i] = 0.38
+            elif t == 2:    # O — saturated red
                 colors[i] = O_GHOST
-                radii[i] = 0.12
-                transp[i] = 0.82
+                radii[i] = 0.34
+                transp[i] = 0.42
             else:           # vacancy — bright cyan
                 colors[i] = CYAN
-                radii[i] = 0.45
+                radii[i] = 0.76
                 transp[i] = 0.0
         data.particles_.create_property("Color", data=colors)
         data.particles_.create_property("Radius", data=radii)
@@ -220,13 +277,14 @@ def style_with_ghosts(types_arr):
     return _style
 
 
-def render_to(pipeline, out_path, cell_max):
+def render_to(pipeline, out_path, cell_max, size=(2000, 2100), zoom_factor=0.78):
     vp = Viewport(type=Viewport.Type.Ortho)
     vp.camera_dir = (2, 1.5, -1)
     vp.fov = cell_max * 1.3
     pipeline.add_to_scene()
     vp.zoom_all()
-    vp.render_image(filename=out_path, size=(2000, 1500),
+    vp.fov *= zoom_factor
+    vp.render_image(filename=out_path, size=size,
                     renderer=renderer, background=WHITE_BG)
     pipeline.remove_from_scene()
     print(f"  Rendered: {out_path}")
@@ -234,71 +292,44 @@ def render_to(pipeline, out_path, cell_max):
 
 # ── Render all 3 stages ──────────────────────────────────────────────────────
 
-for xyz, cx, cy, cz, types, name in [
-    (f1, cx1, cy1, cz1, types1, "panel_d_stage1"),
-    (f2, cx2, cy2, cz2, types2, "panel_d_stage2"),
-    (f3, cx3, cy3, cz3, types3, "panel_d_stage3"),
+for xyz, cx, cy, cz, types, name, size, zoom in [
+    (f1, cx1, cy1, cz1, types1, "panel_d_stage1", (1500, 1450), 0.92),
+    (f2, cx2, cy2, cz2, types2, "panel_d_stage2", (1650, 1450), 0.90),
+    (f3, cx3, cy3, cz3, types3, "panel_d_stage3", (3000, 1650), 0.90),
 ]:
     p = import_file(xyz)
     attach_cell(p, cx, cy, cz)
     p.modifiers.append(style_with_ghosts(types))
-    render_to(p, str(OUT_DIR / f"{name}.png"), max(cx, cy, cz))
+    render_to(p, str(OUT_DIR / f"{name}.png"), max(cx, cy, cz),
+              size=size, zoom_factor=zoom)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COMPOSITE TRIPTYCH
 # ═══════════════════════════════════════════════════════════════════════════════
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 paths = [OUT_DIR / f"panel_d_stage{i}.png" for i in [1, 2, 3]]
 imgs = [Image.open(str(p)) for p in paths]
-w, h = imgs[0].size
 
-pad = 20
-title_h = 55
-callout_h = 55
-total_w = w * 3 + pad * 2
-total_h = title_h + h + callout_h
+# Keep a simple horizontal strip for quick inspection; the final publication
+# layout is assembled in compose_fig10_hybrid.py from the individual stage
+# renders, which now carry distinct scales/aspect ratios.
+pad = 30
+total_w = sum(img.width for img in imgs) + pad * (len(imgs) - 1)
+total_h = max(img.height for img in imgs)
 
 composite = Image.new("RGB", (total_w, total_h), (255, 255, 255))
-draw = ImageDraw.Draw(composite)
-
-try:
-    font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 36)
-    font_callout = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 30)
-    font_sub = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
-except Exception:
-    font_title = font_callout = font_sub = ImageFont.load_default()
-
-labels = [
-    ("Stage 1", "Acoustic Template"),
-    ("Stage 2", "LSW Coarsening"),
-    ("Stage 3", "Condensation"),
-]
-subs = ["seeds ~0.5 nm", "LSW dynamics", "~200 nm colonies"]
-
-for i, (img, (main, sub), bot) in enumerate(zip(imgs, labels, subs)):
-    x_off = i * (w + pad)
-    composite.paste(img, (x_off, title_h))
-    cx_t = x_off + w // 2
-    draw.text((cx_t, 5), f"{main}: {sub}", fill=(50, 50, 50),
-              anchor="mt", font=font_title)
-    draw.text((cx_t, title_h + h + 5), bot, fill=(120, 120, 120),
-              anchor="mt", font=font_sub)
-
-for i in range(2):
-    ax = (i + 1) * (w + pad) - pad // 2
-    ay = title_h + h // 2
-    draw.text((ax, ay), "\u2192", fill=(100, 100, 100), anchor="mm", font=font_title)
-
-callout = "Parallel Transport: M = 1000\u00d7  |  Channel Cond. = 10\u2075\u00d7 Bulk"
-draw.text((total_w // 2, total_h - 5), callout, fill=(0, 0, 0),
-          anchor="mb", font=font_callout)
+x_cursor = 0
+for img in imgs:
+    y = (total_h - img.height) // 2
+    composite.paste(img, (x_cursor, y))
+    x_cursor += img.width + pad
 
 out_path = str(OUT_DIR / "panel_d_v3.png")
 composite.save(out_path, quality=95)
-print(f"\n  Panel D triptych saved: {out_path}")
+print(f"\n  Panel D triptych saved (unlabelled): {out_path}")
 
 for f in [f1, f2, f3]:
     try:

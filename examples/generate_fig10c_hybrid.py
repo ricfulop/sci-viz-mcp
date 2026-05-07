@@ -14,7 +14,7 @@ import numpy as np
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from styles import apply_nature_style, MATERIALS as C
+from styles import apply_aps_style, MATERIALS as C
 
 import matplotlib
 matplotlib.use("Agg")
@@ -53,11 +53,14 @@ def generate_panel_c(output_path=None):
     if output_path is None:
         output_path = str(OUT_DIR / "panel_c_hybrid.png")
 
-    apply_nature_style()
+    apply_aps_style()
     plt.rcParams.update({
-        "figure.dpi": 150, "savefig.dpi": 300,
-        "font.size": 10, "axes.labelsize": 11,
-        "xtick.labelsize": 9, "ytick.labelsize": 9,
+        "figure.dpi": 150, "savefig.dpi": 600,
+        # Panel (c) gets downscaled more than panels (a)/(b) in the final
+        # 2x2 composition, so its source typography needs a modest bump to
+        # land at the same visual size in the composite.
+        "font.size": 12, "axes.labelsize": 13,
+        "xtick.labelsize": 11, "ytick.labelsize": 11,
         "axes.linewidth": 0.8, "lines.linewidth": 1.0,
         "figure.facecolor": "white", "axes.facecolor": "white",
         "savefig.facecolor": "white",
@@ -105,70 +108,52 @@ def generate_panel_c(output_path=None):
         ax_disp.axvline(d, color="#CCCCCC", lw=0.5, zorder=0)
 
     ax_disp.set_xticks(HSP_DISTS)
-    ax_disp.set_xticklabels(HSP_LABELS, fontsize=9, fontweight="bold")
+    ax_disp.set_xticklabels(HSP_LABELS, fontsize=10, fontweight="bold")
 
     # Predicted ridge band — subtle cyan
     for ax in [ax_disp, ax_ram]:
         ax.axhspan(omega_ridge_lo, omega_ridge_hi,
                    color=NC["cyan_band"], alpha=0.10, zorder=0)
 
-    # Zone-folding annotation
+    # Zone-folding annotation (concise)
     q_star_bz = 0.73 * HSP_DISTS[1]
     ax_disp.plot(q_star_bz, omega_star, "o", color=NC["vermillion"], ms=7,
                  zorder=6, markeredgecolor="white", markeredgewidth=0.7)
     ax_disp.annotate(
-        f"$q^*\\!=0.73\\,q_D$\n({omega_star:.0f} cm$^{{-1}}$)",
+        f"$q^*\\!=0.73\\,q_D$",
         xy=(q_star_bz, omega_star),
         xytext=(q_star_bz + 0.08, omega_star + 100),
-        fontsize=7, color=NC["vermillion"], fontweight="bold",
-        arrowprops=dict(arrowstyle="->", color=NC["vermillion"], lw=0.7),
-        bbox=dict(fc="white", ec="none", alpha=0.85, pad=1))
+        fontsize=10, color=NC["vermillion"], fontweight="bold",
+        arrowprops=dict(arrowstyle="->", color=NC["vermillion"], lw=0.7))
 
-    # Folding arrow — thin dashed
+    # Thin folding arrow (dashed) to Gamma; no "zone folding" text inline
     ax_disp.annotate(
         "", xy=(0.005, omega_star - 5),
         xytext=(q_star_bz - 0.005, omega_star - 5),
-        arrowprops=dict(arrowstyle="-|>", color=NC["orange"], lw=1.2,
+        arrowprops=dict(arrowstyle="-|>", color=NC["orange"], lw=1.0,
                         ls="--", connectionstyle="arc3,rad=0.22",
                         mutation_scale=12))
-    ax_disp.text(q_star_bz / 2, omega_star + 45,
-                 "zone folding", ha="center", fontsize=7,
-                 color=NC["orange"], fontweight="bold", style="italic",
-                 bbox=dict(fc="white", ec="none", alpha=0.85, pad=1))
 
     ax_disp.plot(0, omega_star, "*", color=NC["orange"], ms=10, zorder=6)
-    ax_disp.annotate(
-        "folded to $\\Gamma$\n$\\rightarrow$ Raman active",
-        xy=(0.005, omega_star - 10),
-        xytext=(0.08, omega_star - 130),
-        fontsize=6.5, color=NC["orange"], fontweight="bold", ha="center",
-        arrowprops=dict(arrowstyle="->", color=NC["orange"], lw=0.6))
-
     ax_disp.axhline(omega_star, color=NC["orange"], ls=":", lw=0.5, alpha=0.35)
 
-    ax_disp.text(0.12, -155, "soft mode", fontsize=6.5, color=NC["orange"],
-                 style="italic", ha="center")
-
-    ax_disp.text(0.02, 0.02,
-                 "DFPT/PBEsol (mp-1565)",
-                 transform=ax_disp.transAxes,
-                 fontsize=5.5, color=NC["gray"], ha="left", va="bottom",
-                 bbox=dict(fc="white", ec="none", alpha=0.7, pad=1))
+    # Nature-style: no in-figure "soft mode" / "DFPT-PBEsol mp-1565" labels
+    # or "folded to Gamma" callout.  All of that lives in the caption.
 
     from matplotlib.lines import Line2D
     legend_els = [
-        Line2D([0], [0], color=NC["blue"], lw=1.8, label="TA/LA"),
+        Line2D([0], [0], color=NC["blue"], lw=1.8, label="TA / LA"),
         Line2D([0], [0], color=NC["orange"], lw=1.2, label="soft"),
         Line2D([0], [0], color="#56B4E9", lw=1.0, alpha=0.5, label="optical"),
     ]
-    ax_disp.legend(handles=legend_els, fontsize=6.5, loc="upper right",
-                   framealpha=0.9, handlelength=1.2)
+    ax_disp.legend(handles=legend_els, fontsize=10, loc="upper right",
+                   frameon=False, handlelength=1.4)
 
-    ax_disp.set_ylabel("Frequency  (cm$^{-1}$)", fontsize=10, fontweight="bold")
+    ax_disp.set_ylabel("Frequency  (cm$^{-1}$)", fontsize=12, fontweight="bold")
     ax_disp.set_xlim(HSP_DISTS[0] - 0.01, HSP_DISTS[-1] + 0.01)
     ax_disp.set_ylim(-220, 700)
     ax_disp.set_xlabel("")
-    ax_disp.tick_params(axis='y', labelsize=9)
+    ax_disp.tick_params(axis='y', labelsize=10)
 
     # ── Right: Rotated Raman Spectrum ─────────────────────────────────────
     wn = np.linspace(100, 700, 1200)
@@ -192,29 +177,23 @@ def generate_panel_c(output_path=None):
 
     peak_x = lor(458, 458, 7, 0.55) + lor(458, 467, 14, 0.18)
     ax_ram.annotate(
-        "458 cm$^{-1}$\n(anomalous)",
+        "458 cm$^{-1}$",
         xy=(peak_x + 0.01, 458),
         xytext=(0.5, 300),
-        fontsize=9, color=NC["vermillion"], fontweight="bold",
-        arrowprops=dict(arrowstyle="->", color=NC["vermillion"], lw=0.8),
-        bbox=dict(fc="white", ec="none", alpha=0.85, pad=2))
+        fontsize=11, color=NC["vermillion"], fontweight="bold",
+        arrowprops=dict(arrowstyle="->", color=NC["vermillion"], lw=0.8))
 
     ax_ram.axhline(458, color=NC["orange"], ls=":", lw=0.6, alpha=0.5)
 
-    # Predicted ridge band label — positioned below anomalous annotation
-    ax_ram.annotate("predicted\nridge band",
-                    xy=(max(ar600) * 0.35, (omega_ridge_lo + omega_ridge_hi) / 2),
-                    xytext=(max(ar600) * 0.6, 180),
-                    fontsize=6, color="#009E73", style="italic", fontweight="bold",
-                    arrowprops=dict(arrowstyle="->", color="#009E73", lw=0.5),
-                    bbox=dict(fc="white", ec="#009E73", lw=0.3, pad=1.5,
-                              boxstyle="round,pad=0.15", alpha=0.9))
+    # No bordered "predicted ridge band" box -- the cyan axhspan shared
+    # with the dispersion panel already carries that meaning visually.
 
-    ax_ram.set_xlabel("Intensity\n(a.u.)", fontsize=9)
+    ax_ram.set_xlabel("Intensity  (a.u.)", fontsize=11)
     ax_ram.set_xlim(0, max(ar600) * 1.15)
     ax_ram.set_xticks([])
     plt.setp(ax_ram.get_yticklabels(), visible=False)
-    ax_ram.legend(fontsize=6.5, loc="lower right", framealpha=0.9, handlelength=1.0)
+    ax_ram.legend(fontsize=10, loc="lower right", frameon=False,
+                  handlelength=1.4)
 
     # Connection line
     con = ConnectionPatch(
@@ -228,7 +207,8 @@ def generate_panel_c(output_path=None):
 
     for fmt in ["png", "pdf"]:
         p = output_path.replace(".png", f".{fmt}")
-        fig.savefig(p, dpi=300, bbox_inches="tight", pad_inches=0.04)
+        dpi = 300 if fmt == "png" else 600
+        fig.savefig(p, dpi=dpi, bbox_inches="tight", pad_inches=0.04)
         print(f"  Saved: {p}")
     plt.close(fig)
     return output_path
