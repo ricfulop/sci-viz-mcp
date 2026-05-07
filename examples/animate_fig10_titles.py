@@ -43,10 +43,20 @@ FONT_PATHS = (
 # Helvetica TTFs don't ship the Latin-Extended-Superscripts block. Use
 # parentheses for oxidation states instead — this is also Nature's
 # in-text convention.
+#
+# Card timing tracks the new templating-aware Blender timeline:
+#   0.0 – 3.0 s    Act 1   establishing rotation
+#   3.0 – 9.0 s    Act 2   wave grows + antinode discs reveal
+#   9.0 – 13.0 s   Act 3a  Frenkel kick + interstitial escape
+#  13.0 – 17.0 s   Act 3b  topotactic collapse + lattice contraction
+#  17.0 – 21.0 s   Act 4   zone-folding placeholder
+#  21.0 – 26.0 s   Act 5   Ostwald ripening
+#  26.0 – 28.0 s   closing title
 CARDS: list[tuple[float, float, str]] = [
     (0.2,  3.0,  "Acoustic blueprint   d* ≈ 0.96 a"),
-    (3.2,  8.5,  "Phonon-templated lattice"),
-    (9.0,  16.5, "Topotactic collapse   Zr(IV) → Zr(II)    8% [110] contraction"),
+    (3.2,  9.0,  "Phonon mode amplifies — antinodes template the lattice"),
+    (9.0,  12.8, "Frenkel pairs nucleate at antinode planes"),
+    (13.0, 16.8, "Topotactic collapse   Zr(IV) → Zr(II)   8% [110] contraction"),
     (17.0, 20.5, "Zone-folding Raman signature   458 cm-1"),
     (21.0, 25.5, "Ostwald ripening   ~200 nm dendritic 2DEG colonies"),
     (26.0, 28.0, "Ordered Defect Condensation"),
@@ -109,15 +119,15 @@ def _generate_cards() -> list[tuple[Path, float, float]]:
 def _build_filter_complex(card_paths: list[tuple[Path, float, float]]) -> str:
     """Chain N overlay filters together with time gating."""
     parts = ["[0:v]null[v0]"]
+    n = len(card_paths)
     for i, (_, t0, t1) in enumerate(card_paths):
         in_label = f"v{i}"
-        out_label = f"v{i+1}"
+        out_label = "vout" if i == n - 1 else f"v{i+1}"
         parts.append(
             f"[{in_label}][{i+1}:v]"
             f"overlay=enable='between(t,{t0:.2f},{t1:.2f})':x=0:y=0"
             f"[{out_label}]"
         )
-    parts[-1] = parts[-1].replace(f"[v{len(card_paths)}]", "[vout]")
     return ";".join(parts)
 
 

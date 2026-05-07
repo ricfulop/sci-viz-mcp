@@ -70,6 +70,16 @@ CONTRACTION = GEOMETRIC_FACTOR * ELECTRONIC_FACTOR        # 0.920
 D_STAR = 4.96             # Å, acoustic ridge phonon spacing (= 0.96 × a)
 WAVE_K = 2 * math.pi / D_STAR
 
+# An O atom is a Frenkel-pair candidate when the *signed* wave amplitude
+# sin(k z) at its rest position is above this threshold — i.e. it sits in
+# the tensile half-cycle of the standing wave that pulls atoms out of
+# their lattice sites. The compressive (negative-amplitude) half-cycle
+# pushes atoms inward and leaves them in place. With d* ≈ 0.96 a the
+# fluorite O sublattice is so commensurate with the wave that every site
+# is near an antinode magnitude (so |sin| > 0.5 catches everyone); the
+# sign criterion is what gives the visible alternating-plane pattern.
+WAVE_AMPLITUDE_THRESHOLD = 0.5
+
 # Atom colors: Okabe-Ito accessible palette (Wong 2011, Nature Methods)
 # Initial = panel a (insulating fluorite), final = panel b (metallic rocksalt)
 ZR_COLOR_INSULATING = (0.000, 0.447, 0.698, 1.0)   # Okabe-Ito blue   #0072B2
@@ -77,6 +87,7 @@ ZR_COLOR_METALLIC   = (0.835, 0.369, 0.000, 1.0)   # Okabe-Ito vermillion #D55E0
 O_COLOR_LATTICE     = (0.835, 0.369, 0.000, 1.0)   # vermillion (CPK red, accessible)
 O_COLOR_ROCKSALT    = (0.902, 0.624, 0.000, 1.0)   # Okabe-Ito orange #E69F00 (mark migrated O)
 BOND_COLOR          = (0.65, 0.66, 0.69, 1.0)
+ANTINODE_COLOR      = (0.92, 0.32, 0.18, 1.0)      # warm red, translucent disc
 
 
 # ── Animation timeline (24 fps, 672 frames total) ───────────────────────────
@@ -84,17 +95,23 @@ BOND_COLOR          = (0.65, 0.66, 0.69, 1.0)
 FPS = 24
 
 ACT1 = (0,   72)     # establishing rotation
-ACT2 = (72,  216)    # phonon wave amplitude growth
-ACT3 = (216, 408)    # topotactic transformation + lattice contraction
+ACT2 = (72,  216)    # phonon wave grows + antinode planes appear
+ACT3 = (216, 408)    # Frenkel formation at antinodes + topotactic + contraction
 ACT4 = (408, 504)    # placeholder for zone-folding overlay (rendered separately)
 ACT5 = (504, 672)    # mesoscale Ostwald ripening
 TOTAL_FRAMES = 672
 
+# Sub-timeline within Act 2
+ACT2_WAVE_GROW       = (72,  168)   # amplitude ramps 0 → A_max
+ACT2_ANTINODE_REVEAL = (96,  216)   # antinode discs fade in + pulse
+
 # Sub-timeline within Act 3
-ACT3_O_MIGRATE   = (216, 312)   # O atoms slide tet → oct
-ACT3_O_FADE      = (240, 336)   # half of O atoms fade (vacancies forming)
-ACT3_ZR_RECOLOR  = (288, 384)   # Zr⁴⁺ → Zr²⁺ color blend
-ACT3_CONTRACT    = (312, 408)   # lattice scale 1.0 → 0.92
+ACT3_FRENKEL_KICK    = (216, 264)   # antinode O atoms displace into interstitial
+ACT3_FRENKEL_ESCAPE  = (240, 312)   # interstitials shrink + fade out (vacancies form)
+ACT3_ANTINODE_FADE   = (264, 312)   # antinode planes dim once vacancies are seeded
+ACT3_O_MIGRATE       = (288, 360)   # remaining O atoms slide tet → oct
+ACT3_ZR_RECOLOR      = (300, 384)   # Zr⁴⁺ → Zr²⁺ color blend
+ACT3_CONTRACT        = (336, 408)   # lattice scale 1.0 → 0.92
 
 
 # ── Scene setup ─────────────────────────────────────────────────────────────
@@ -119,7 +136,7 @@ def _clear_scene() -> None:
     )
     target_prefixes_objs = (
         "Fig10Cam", "Fig10Key", "Fig10Fill", "Fig10Rim",
-        "OstwaldSeed", "Dendrite",
+        "OstwaldSeed", "Dendrite", "Antinode_",
         "AxisIndicator", "Supercell_wireframe",
         "SciVizCam", "SciVizSun", "NMKey", "NMFill", "NMRim", "NMCam",
         "Cylinder", "Cone", "Text",  # default-named primitives from gizmos
@@ -142,7 +159,7 @@ def _clear_scene() -> None:
     for obj in stale:
         bpy.data.objects.remove(obj, do_unlink=True)
 
-    for coll_name in (COLLECTION_NAME, "Crystal", "Fig10_Seeds"):
+    for coll_name in (COLLECTION_NAME, "Crystal", "Fig10_Seeds", "Fig10_Antinodes"):
         coll = bpy.data.collections.get(coll_name)
         if coll is None:
             continue
@@ -318,22 +335,34 @@ def _atom_lists(coll: bpy.types.Collection) -> tuple[list[bpy.types.Object], lis
     return zr, o, bonds
 
 
+def _wave_amplitude_signed(z: float) -> float:
+    """sin(k z) — signed wave amplitude. +1 at tensile antinodes (where
+    Frenkel pairs form), -1 at compressive antinodes (atoms stay put)."""
+    return math.sin(WAVE_K * z)
+
+
 def _classify_oxygens(o_atoms: list[bpy.types.Object]) -> tuple[list[bpy.types.Object], list[bpy.types.Object]]:
-    """Half migrate (8c → 4b), half fade. Use parity of (x+y+z) lattice index
-    to alternate, so the result is a structured pattern instead of speckle —
-    matches the topotactic story in the caption.
+    """Templating-aware classification of O atoms.
+
+    Frenkel-pair candidates are O atoms sitting in the **positive**
+    (tensile) half-cycle of the standing wave: ``sin(kz) > +threshold``.
+    These are the atoms the wave can pull out of their 8c sites into
+    interstitials. Atoms in the negative (compressive) half-cycle stay
+    put and instead migrate 8c → 4b during the topotactic collapse.
+
+    Result for d* = 0.96 a is a clean alternating pattern of horizontal
+    Frenkel layers (one per wavelength of the standing wave) — the
+    ordered superstructure the manuscript caption refers to as the
+    "epitaxial superstructure" templated by the ridge phonon.
     """
-    migrate, fade = [], []
+    frenkel, migrate = [], []
     for obj in o_atoms:
-        loc = obj.matrix_world.translation
-        # fluorite O sits at (1/4, 1/4, 1/4) within each unit cell, so
-        # round((loc - 0.25*a)/a) gives the integer cell index.
-        idx = tuple(round((loc[i] / A_PARENT) - 0.25) for i in range(3))
-        if (idx[0] + idx[1] + idx[2]) % 2 == 0:
-            migrate.append(obj)
+        z = obj.matrix_world.translation.z
+        if _wave_amplitude_signed(z) > WAVE_AMPLITUDE_THRESHOLD:
+            frenkel.append(obj)
         else:
-            fade.append(obj)
-    return migrate, fade
+            migrate.append(obj)
+    return frenkel, migrate
 
 
 def _rocksalt_target(o_loc: Vector) -> Vector:
@@ -389,6 +418,89 @@ def _key_visibility(obj: bpy.types.Object, frame: int, visible: bool) -> None:
 # ── Animation: the four acts ────────────────────────────────────────────────
 
 
+def _build_antinode_planes(center: Vector, extent: float, supercell_z_max: float) -> list[bpy.types.Object]:
+    """Create translucent red discs at every standing-wave antinode plane.
+
+    The discs are flat horizontal cylinders (depth 0.18 Å) at z = (2n+1)·d*/4
+    with radius scaled to the lattice extent. They start invisible at the
+    end of Act 1, fade in during Act 2 (locked to wave-amplitude growth),
+    pulse subtly through the rest of Act 2, then dim out during Act 3
+    once Frenkel pairs have nucleated on them.
+
+    Visually, these discs are the "templating sheets" — atoms within them
+    are the ones that get kicked out as Frenkel pairs.
+    """
+    coll = bpy.data.collections.get("Fig10_Antinodes")
+    if coll is None:
+        coll = bpy.data.collections.new("Fig10_Antinodes")
+        bpy.context.scene.collection.children.link(coll)
+
+    mat = bpy.data.materials.new("Mat_Antinode")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf is not None:
+        if "Base Color" in bsdf.inputs:
+            bsdf.inputs["Base Color"].default_value = ANTINODE_COLOR
+        if "Roughness" in bsdf.inputs:
+            bsdf.inputs["Roughness"].default_value = 0.55
+        if "Alpha" in bsdf.inputs:
+            bsdf.inputs["Alpha"].default_value = 0.18
+    mat.blend_method = "BLEND"
+    mat.use_backface_culling = False
+
+    # Only the *positive* (tensile) antinodes are drawn — these are the
+    # half-cycle planes where Frenkel pairs nucleate. Drawing the negative
+    # half too would double the planes without adding physical content
+    # and would visually clutter the standing-wave story.
+    planes: list[bpy.types.Object] = []
+    n = 0
+    radius = extent * 0.55
+    while True:
+        # sin(k z) = +1 at z = d*/4 + n·d*
+        z_anti = D_STAR / 4.0 + n * D_STAR
+        if z_anti > supercell_z_max + 0.5:
+            break
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=radius, depth=0.18,
+            location=(center.x, center.y, z_anti),
+            vertices=48,
+        )
+        plane = bpy.context.active_object
+        plane.name = f"Antinode_{n}"
+        for face in plane.data.polygons:
+            face.use_smooth = True
+        plane.data.materials.clear()
+        plane.data.materials.append(mat)
+        for c in plane.users_collection:
+            c.objects.unlink(plane)
+        coll.objects.link(plane)
+        planes.append(plane)
+        n += 1
+    return planes
+
+
+def _animate_antinode_planes(planes: list[bpy.types.Object]) -> None:
+    """Keyframe each antinode disc: invisible -> grow with wave amplitude
+    -> hold -> fade after Frenkel formation."""
+    for plane in planes:
+        # Hidden through Act 1
+        _key_visibility(plane, ACT1[1] - 1, False)
+        # Become visible at start of antinode reveal (Act 2)
+        _key_visibility(plane, ACT2_ANTINODE_REVEAL[0], True)
+        _key_scale(plane, ACT2_ANTINODE_REVEAL[0], (0.0, 0.0, 1.0))
+        # Grow to full size as wave amplitude maxes out
+        _key_scale(plane, ACT2_WAVE_GROW[1], (1.0, 1.0, 1.0))
+        # Hold visibly through the rest of Act 2 (lets viewers register pattern)
+        _key_scale(plane, ACT2[1], (1.0, 1.0, 1.0))
+        # Pulse slightly during Frenkel kick — re-enforces the link
+        _key_scale(plane, ACT3_FRENKEL_KICK[0], (1.0, 1.0, 1.0))
+        _key_scale(plane, ACT3_FRENKEL_KICK[1], (1.05, 1.05, 1.0))
+        # Fade out as Frenkel pairs escape and vacancies are stable
+        _key_scale(plane, ACT3_ANTINODE_FADE[0], (1.05, 1.05, 1.0))
+        _key_scale(plane, ACT3_ANTINODE_FADE[1], (0.0, 0.0, 1.0))
+        _key_visibility(plane, ACT3_ANTINODE_FADE[1], False)
+
+
 def _act1_camera_rotation(cam: bpy.types.Object, center: Vector, extent: float) -> None:
     """Slow yaw rotation around the crystal during act 1 + 2 (frames 0-216)."""
     radius = extent * 3.4
@@ -438,56 +550,85 @@ def _act2_phonon_wave(zr: list[bpy.types.Object], o: list[bpy.types.Object]) -> 
 
 def _act3_topotactic(zr: list[bpy.types.Object],
                      o_migrate: list[bpy.types.Object],
-                     o_fade: list[bpy.types.Object],
+                     o_frenkel: list[bpy.types.Object],
                      coll: bpy.types.Collection,
                      center: Vector) -> None:
-    """The structural collapse + electronic transition + lattice contraction."""
+    """Frenkel formation at antinodes + topotactic collapse + contraction.
 
-    # 1. Hold the wave-displaced positions through the start of act 3,
-    #    then begin migrating O atoms 8c → 4b
+    The antinode-z O atoms (``o_frenkel``) get kicked into an interstitial
+    site (small +z displacement), then escape — the canonical Frenkel
+    pair: vacancy on the lattice site, interstitial that diffuses out
+    as O₂. The remaining O atoms (``o_migrate``) slide 8c → 4b during
+    the topotactic collapse, while Zr recolours and the lattice
+    contracts by a factor of 0.920.
+    """
+
     rest_positions = {obj.name: obj.matrix_world.translation.copy()
-                      for obj in zr + o_migrate + o_fade}
+                      for obj in zr + o_migrate + o_frenkel}
 
-    for obj in zr + o_migrate + o_fade:
+    for obj in zr + o_migrate + o_frenkel:
         _key_loc(obj, ACT3[0], rest_positions[obj.name])
 
-    # 2. O atoms that migrate: smooth path from current → octahedral target
-    f0, f1 = ACT3_O_MIGRATE
-    n = 8
-    for obj in o_migrate:
+    # 1. FRENKEL KICK: antinode O atoms displace upward into interstitial.
+    #    Direction sign follows sin(k·z) so kicks alternate between the
+    #    positive- and negative-amplitude branches of the standing wave —
+    #    visually faithful to a longitudinal phonon mode.
+    f0, f1 = ACT3_FRENKEL_KICK
+    n_kick_steps = 4
+    interstitial_offset = 0.55  # Å, magnitude of the kick out of the 8c site
+    interstitial_loc = {}
+    for obj in o_frenkel:
         start = rest_positions[obj.name]
-        target = _rocksalt_target(start)
-        for s in range(1, n + 1):
-            t = s / n
-            # ease-in-out via smoothstep
+        # All Frenkel candidates sit in the tensile half-cycle (sin > 0),
+        # so the kick direction is +z for every one of them — visually
+        # this is "the wave pulls them up, out of their sites".
+        target = start + Vector((0.0, 0.0, interstitial_offset))
+        interstitial_loc[obj.name] = target
+        for s in range(1, n_kick_steps + 1):
+            t = s / n_kick_steps
             t_smooth = t * t * (3 - 2 * t)
-            new_loc = start + (target - start) * t_smooth
-            _key_loc(obj, int(f0 + (f1 - f0) * s / n), new_loc)
+            _key_loc(obj, int(f0 + (f1 - f0) * s / n_kick_steps),
+                     start + (target - start) * t_smooth)
 
-    # 3. O atoms that fade: shrink + alpha to zero
-    f0, f1 = ACT3_O_FADE
-    for obj in o_fade:
+    # 2. FRENKEL ESCAPE: the interstitial shrinks + fades (escapes as O₂).
+    f0, f1 = ACT3_FRENKEL_ESCAPE
+    for obj in o_frenkel:
+        _key_loc(obj, f0, interstitial_loc[obj.name])
         _key_scale(obj, f0, 1.0)
         _key_visibility(obj, f0, True)
+        # continue drifting upward subtly while shrinking
+        drift = interstitial_loc[obj.name] + Vector((0.0, 0.0, 0.45))
+        _key_loc(obj, f1 - 6, drift)
         _key_scale(obj, f1 - 6, 0.05)
         _key_visibility(obj, f1, False)
 
-    # 4. Zr color animation: Okabe-Ito blue → vermillion (Zr⁴⁺ → Zr²⁺)
+    # 3. MIGRATE the surviving (node) O atoms 8c → 4b.
+    f0, f1 = ACT3_O_MIGRATE
+    n_steps = 8
+    for obj in o_migrate:
+        start = rest_positions[obj.name]
+        target = _rocksalt_target(start)
+        _key_loc(obj, f0, start)
+        for s in range(1, n_steps + 1):
+            t = s / n_steps
+            t_smooth = t * t * (3 - 2 * t)
+            new_loc = start + (target - start) * t_smooth
+            _key_loc(obj, int(f0 + (f1 - f0) * s / n_steps), new_loc)
+
+    # 4. Zr color animation: Okabe-Ito blue → vermillion (Zr⁴⁺ → Zr²⁺).
     f0, f1 = ACT3_ZR_RECOLOR
     zr_mat = bpy.data.materials.get("Mat_Zr")
     if zr_mat is not None:
         _key_color(zr_mat, f0, ZR_COLOR_INSULATING)
         _key_color(zr_mat, f1, ZR_COLOR_METALLIC)
 
-    # 5. O color: lattice red → rocksalt orange (only migrated O survive)
+    # 5. O color: lattice red → rocksalt orange on the surviving O atoms.
     o_mat = bpy.data.materials.get("Mat_O")
     if o_mat is not None:
         _key_color(o_mat, f0, O_COLOR_LATTICE)
         _key_color(o_mat, f1, O_COLOR_ROCKSALT)
 
-    # 6. Lattice contraction: scale the Crystal collection's empty parent.
-    #    Easier to script: scale every atom & bond toward `center` over the
-    #    contraction window. We add an Empty parent to drive this.
+    # 6. Lattice contraction: pivot empty scales the whole crystal collection.
     parent = bpy.data.objects.get(f"{COLLECTION_NAME}_pivot")
     if parent is None:
         parent = bpy.data.objects.new(f"{COLLECTION_NAME}_pivot", None)
@@ -691,21 +832,24 @@ def setup_scene() -> dict:
 def animate_all() -> dict:
     coll = bpy.data.collections[COLLECTION_NAME]
     zr, o, bonds = _atom_lists(coll)
-    o_migrate, o_fade = _classify_oxygens(o)
+    o_frenkel, o_migrate = _classify_oxygens(o)
 
     cam = bpy.data.objects["Fig10Cam"]
     minp, maxp, center, extent = _bbox(coll)
 
+    # Antinode discs first so the planes parent into Fig10_Antinodes
+    # before any keyframes touch them.
+    planes = _build_antinode_planes(center, extent, supercell_z_max=maxp.z)
+    _animate_antinode_planes(planes)
+
     _act1_camera_rotation(cam, center, extent)
     _act2_phonon_wave(zr, o)
-    _act3_topotactic(zr, o_migrate, o_fade, coll, center)
+    _act3_topotactic(zr, o_migrate, o_frenkel, coll, center)
 
-    # Bonds: keep visible through Act 1 + 2 (they reflect the parent fluorite
-    # geometry), then fade out at the start of Act 3 so the migration doesn't
-    # leave dangling cylinders. The post-rocksalt structure is shown
-    # bond-free, which matches how Nature panels often present transformed
-    # phases (the Fig. 10 panel b sketch itself omits bonds in the rocksalt
-    # half).
+    # Bonds: keep visible through Act 1 + 2 (they reflect the parent
+    # fluorite geometry), then fade out at the start of Act 3 so neither
+    # the Frenkel kick nor the topotactic migration leaves dangling
+    # cylinders. The post-rocksalt structure is shown bond-free.
     for bond in bonds:
         _key_visibility(bond, ACT3[0] - 1, True)
         _key_visibility(bond, ACT3[0] + 24, False)
@@ -735,8 +879,9 @@ def animate_all() -> dict:
     return {
         "zr_count": len(zr),
         "o_total": len(o),
+        "o_frenkel": len(o_frenkel),
         "o_migrating": len(o_migrate),
-        "o_fading": len(o_fade),
+        "antinode_planes": len(planes),
     }
 
 
