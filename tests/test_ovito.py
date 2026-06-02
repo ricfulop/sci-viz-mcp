@@ -48,7 +48,7 @@ def test_ovito_pipeline():
 
         # Import data
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
-            "name": "ovito.import_data",
+            "name": "ovito_import_data",
             "arguments": {"file_path": str(CIF)},
         }})
         handle = r["handle"]
@@ -57,7 +57,7 @@ def test_ovito_pipeline():
 
         # Set visual style
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
-            "name": "ovito.set_visual_style",
+            "name": "ovito_set_visual_style",
             "arguments": {
                 "handle": handle,
                 "particle_colors": {"Zr": "#4a86c8", "O": "#e74c3c"},
@@ -68,7 +68,7 @@ def test_ovito_pipeline():
 
         # Set camera
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
-            "name": "ovito.set_camera",
+            "name": "ovito_set_camera",
             "arguments": {"handle": handle, "type": "ORTHO", "direction": [0, 0, -1]},
         }})
         print(f"  [4] Camera: {r['camera_type']}, dir={r['direction']}")
@@ -76,7 +76,7 @@ def test_ovito_pipeline():
         # Render image
         out_file = str(OUTPUT / "ovito_fluorite_test.png")
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {
-            "name": "ovito.render_image",
+            "name": "ovito_render_image",
             "arguments": {
                 "handle": handle,
                 "output_file": out_file,
@@ -93,7 +93,7 @@ def test_ovito_pipeline():
 
         # Pipeline status
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {
-            "name": "ovito.pipeline_status",
+            "name": "ovito_pipeline_status",
             "arguments": {"handle": handle},
         }})
         print(f"  [6] Pipeline: {r['num_particles']} particles, {len(r['modifiers'])} modifiers")
@@ -101,7 +101,7 @@ def test_ovito_pipeline():
 
         # List pipelines
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {
-            "name": "ovito.list_pipelines",
+            "name": "ovito_list_pipelines",
             "arguments": {},
         }})
         assert len(r["pipelines"]) >= 1

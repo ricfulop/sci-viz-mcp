@@ -1,6 +1,6 @@
 """
 styles.py
-Publication figure style presets for APS (PRL/PRX/PRB) and Nature journals.
+Publication figure style presets for APS (PRL/PRX/PRB), Nature, and Science.
 
 Consolidated from existing figure scripts across:
   - microscopic-origins-overleaf
@@ -9,9 +9,10 @@ Consolidated from existing figure scripts across:
   - voltivity-repo
 
 Usage:
-    from styles import apply_aps_style, apply_nature_style, OKABE_ITO
-    apply_aps_style()
-    fig, ax = plt.subplots(figsize=APS_DOUBLE)
+    from styles import apply_aps_style, apply_nature_style, apply_science_style, OKABE_ITO
+    from styles import label_science_panel, save_science_figure, science_double
+    apply_science_style()
+    fig, ax = plt.subplots(figsize=science_double())
 """
 
 import matplotlib.pyplot as plt
@@ -60,6 +61,11 @@ APS_DOUBLE_SHORT = (6.75, 2.4)     # compact 3-panel strip
 NATURE_SINGLE = (3.5, 2.625)       # 89 mm single column
 NATURE_1P5 = (5.35, 3.5)           # 136 mm 1.5-column
 NATURE_DOUBLE = (7.08, 4.0)        # 180 mm full width
+
+# Science / AAAS print widths
+SCIENCE_SINGLE = (2.24, 1.68)      # 5.7 cm / 1 column
+SCIENCE_DOUBLE = (4.76, 3.0)       # 12.1 cm / 2 columns
+SCIENCE_TRIPLE = (7.24, 4.0)       # 18.4 cm / 3 columns
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # APS / PRL / PRX style
@@ -243,6 +249,135 @@ def nature_double(height=4.0):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Science / AAAS style
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_SCIENCE_RCPARAMS = {
+    # Science prefers Helvetica and final lettering around 7 pt, never below 5 pt.
+    "text.usetex": False,
+    "mathtext.fontset": "custom",
+    "mathtext.rm": "Helvetica",
+    "mathtext.it": "Helvetica:italic",
+    "mathtext.bf": "Helvetica:bold",
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
+    "font.size": 7,
+    "axes.labelsize": 7,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6,
+    "legend.fontsize": 6,
+
+    # Maximize data area; avoid grid lines and duplicated right/top labels.
+    "axes.linewidth": 0.5,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.formatter.use_mathtext": True,
+    "axes.grid": False,
+
+    # Science asks for distinguishable solid symbols and legible 0.5 pt lines.
+    "lines.linewidth": 0.8,
+    "lines.markersize": 6,
+
+    # Keep axes simple. Science discourages minor tick marks in scales.
+    "xtick.direction": "out",
+    "ytick.direction": "out",
+    "xtick.top": False,
+    "ytick.right": False,
+    "xtick.minor.visible": False,
+    "ytick.minor.visible": False,
+    "xtick.major.size": 3.0,
+    "ytick.major.size": 3.0,
+    "xtick.major.width": 0.5,
+    "ytick.major.width": 0.5,
+
+    # Simple, compact legends.
+    "legend.frameon": False,
+    "legend.handlelength": 1.0,
+    "legend.labelspacing": 0.25,
+
+    # Science initial submission asks for 300 dpi; revised raster files are 300 dpi minimum.
+    "figure.dpi": 300,
+    "savefig.dpi": 300,
+    "savefig.bbox": "tight",
+    "savefig.pad_inches": 0.02,
+
+    # Keep text editable/searchable in vector exports.
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+}
+
+
+def apply_science_style():
+    """Apply Science / AAAS figure style."""
+    plt.rcParams.update(_SCIENCE_RCPARAMS)
+
+
+def science_single(height=1.68):
+    """Return Science single-column figsize (2.24 x height in / 5.7 cm)."""
+    return (2.24, height)
+
+
+def science_double(height=3.0):
+    """Return Science two-column figsize (4.76 x height in / 12.1 cm)."""
+    return (4.76, height)
+
+
+def science_triple(height=4.0):
+    """Return Science three-column figsize (7.24 x height in / 18.4 cm)."""
+    return (7.24, height)
+
+
+# Science panel labels and export defaults (AAAS author instructions, 2025)
+SCIENCE_PANEL_FONTSIZE = 10
+SCIENCE_MIN_FONTSIZE = 5
+SCIENCE_SAVE_KW = {"bbox_inches": "tight", "pad_inches": 0.02, "dpi": 300}
+
+
+def label_science_panel(ax, label, *, x=0.02, y=0.98, fontsize=SCIENCE_PANEL_FONTSIZE):
+    """Add an uppercase bold panel label (A, B, C) in the upper-left corner."""
+    ax.text(
+        x,
+        y,
+        str(label).strip().upper(),
+        transform=ax.transAxes,
+        fontsize=fontsize,
+        fontweight="bold",
+        va="top",
+        ha="left",
+        clip_on=False,
+    )
+
+
+def save_science_figure(fig, path, **kwargs):
+    """Save with Science defaults: 300 dpi, tight bbox, editable vector fonts."""
+    from pathlib import Path
+
+    out = Path(path)
+    save_kw = {**SCIENCE_SAVE_KW, **kwargs}
+    fig.savefig(out, **save_kw)
+
+
+def save_science_revision_figures(fig, stem, *, also_tiff=False, **kwargs):
+    """Write PDF and EPS for revised-manuscript vector figures.
+
+    Args:
+        fig: matplotlib Figure.
+        stem: Output path without suffix (e.g. ``figures/Fig1``).
+        also_tiff: If True, also write ``stem.tiff`` (raster fallback).
+    """
+    from pathlib import Path
+
+    base = Path(stem)
+    save_science_figure(fig, base.with_suffix(".pdf"), **kwargs)
+    save_science_figure(fig, base.with_suffix(".eps"), **kwargs)
+    if also_tiff:
+        save_science_figure(fig, base.with_suffix(".tiff"), **kwargs)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # APS large-font style (for panels rendered at 0.48\textwidth in LaTeX)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -283,6 +418,7 @@ def get_style_dict(style="aps"):
         "aps_latex": _APS_LATEX_RCPARAMS,
         "aps_large": _APS_LARGE_RCPARAMS,
         "nature": _NATURE_RCPARAMS,
+        "science": _SCIENCE_RCPARAMS,
     }
     if style not in styles:
         raise ValueError(f"Unknown style: {style}. Available: {list(styles.keys())}")

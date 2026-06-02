@@ -17,6 +17,17 @@ import traceback
 import hashlib
 from pathlib import Path
 
+_THIS_DIR = Path(__file__).parent.resolve()
+sys.path.insert(0, str(_THIS_DIR.parent))
+from mcp_runtime import (
+    configure_matplotlib_for_mcp,
+    configure_stdio_logging,
+    resolve_tool_name,
+)
+
+configure_stdio_logging()
+configure_matplotlib_for_mcp()
+
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -24,8 +35,6 @@ import matplotlib.pyplot as plt
 from matplotlib.tri import Triangulation
 from matplotlib.collections import PolyCollection
 
-_THIS_DIR = Path(__file__).parent.resolve()
-sys.path.insert(0, str(_THIS_DIR.parent))
 from styles import get_style_dict, _APS_RCPARAMS, _NATURE_RCPARAMS
 from preview.notify import notify_preview
 
@@ -315,6 +324,28 @@ def handle_list_datasets(args):
     return {"datasets": result}
 
 
+def handle_health(args):
+    """Report server readiness (no field data required)."""
+    import matplotlib as mpl
+
+    return {
+        "status": "ok",
+        "server": "comsol_viz_mcp",
+        "matplotlib_backend": mpl.get_backend(),
+        "output_dir": str(OUTPUT_DIR),
+        "loaded_datasets": len(_datasets),
+        "h5py_available": _optional_import("h5py"),
+    }
+
+
+def _optional_import(module: str) -> bool:
+    try:
+        __import__(module)
+        return True
+    except ImportError:
+        return False
+
+
 def handle_get_field_stats(args):
     """Get statistics for a field."""
     handle = args["handle"]
@@ -345,7 +376,12 @@ def handle_get_field_stats(args):
 # ── Tool registry ────────────────────────────────────────────────────────────
 
 TOOLS = {
-    "comsol_viz.load_field": {
+    "comsol_viz_health": {
+        "handler": handle_health,
+        "description": "Check comsol_viz_mcp readiness (matplotlib, output dir, optional h5py).",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    "comsol_viz_load_field": {
         "handler": handle_load_field,
         "description": "Load COMSOL field export (HDF5 or CSV) for visualization. Returns handle and list of available fields.",
         "inputSchema": {
@@ -356,7 +392,7 @@ TOOLS = {
             "required": ["file_path"],
         },
     },
-    "comsol_viz.render_field_map": {
+    "comsol_viz_render_field_map": {
         "handler": handle_render_field_map,
         "description": "Render a 2D field map (temperature, E-field, current density, etc.) with colorbar in APS or Nature style.",
         "inputSchema": {
@@ -379,7 +415,7 @@ TOOLS = {
             "required": ["handle", "field"],
         },
     },
-    "comsol_viz.render_line_cut": {
+    "comsol_viz_render_line_cut": {
         "handler": handle_render_line_cut,
         "description": "Render a 1D line cut through field data along x or y axis.",
         "inputSchema": {
@@ -400,7 +436,7 @@ TOOLS = {
             "required": ["handle", "field"],
         },
     },
-    "comsol_viz.render_mesh": {
+    "comsol_viz_render_mesh": {
         "handler": handle_render_mesh,
         "description": "Render the COMSOL mesh triangulation.",
         "inputSchema": {
@@ -415,12 +451,12 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "comsol_viz.list_datasets": {
+    "comsol_viz_list_datasets": {
         "handler": handle_list_datasets,
         "description": "List all loaded COMSOL field datasets.",
         "inputSchema": {"type": "object", "properties": {}},
     },
-    "comsol_viz.get_field_stats": {
+    "comsol_viz_get_field_stats": {
         "handler": handle_get_field_stats,
         "description": "Get min/max/mean/std statistics for a field.",
         "inputSchema": {
@@ -457,7 +493,7 @@ def handle_tools_list():
 
 
 def handle_tools_call(params):
-    tool_name = params.get("name")
+    tool_name = resolve_tool_name(params.get("name"), TOOLS)
     arguments = params.get("arguments", {})
     if tool_name not in TOOLS:
         raise ValueError(f"Unknown tool: {tool_name}")
@@ -483,6 +519,8 @@ def main():
                 send_response(req_id, handle_tools_list())
             elif method == "tools/call":
                 send_response(req_id, handle_tools_call(params))
+            elif method == "ping":
+                send_response(req_id, {})
             else:
                 send_error(req_id, -32601, f"Method not found: {method}")
 

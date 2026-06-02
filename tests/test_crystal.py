@@ -52,7 +52,7 @@ def test_full_pipeline():
 
         # Import structure
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
-            "name": "crystal.import_structure",
+            "name": "crystal_import_structure",
             "arguments": {"file_path": str(CIF)},
         }})
         handle = r["handle"]
@@ -62,7 +62,7 @@ def test_full_pipeline():
 
         # Get symmetry
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
-            "name": "crystal.get_symmetry",
+            "name": "crystal_get_symmetry",
             "arguments": {"handle": handle},
         }})
         assert r["space_group_symbol"] == "Fm-3m"
@@ -72,7 +72,7 @@ def test_full_pipeline():
 
         # Build supercell
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
-            "name": "crystal.build_supercell",
+            "name": "crystal_build_supercell",
             "arguments": {"handle": handle, "repeats": [3, 3, 1]},
         }})
         sc_handle = r["handle"]
@@ -82,7 +82,7 @@ def test_full_pipeline():
         # Render lattice projection
         out_render = str(OUTPUT / "fig10a_validation.png")
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {
-            "name": "crystal.render_lattice",
+            "name": "crystal_render_lattice",
             "arguments": {
                 "handle": sc_handle,
                 "output_file": out_render,
@@ -100,7 +100,7 @@ def test_full_pipeline():
         # Export TikZ
         out_tikz = str(OUTPUT / "fig10a_validation.tex")
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {
-            "name": "crystal.export_tikz",
+            "name": "crystal_export_tikz",
             "arguments": {"handle": sc_handle, "output_file": out_tikz},
         }})
         assert Path(r["output_file"]).exists()
@@ -109,7 +109,7 @@ def test_full_pipeline():
         # Render unit cell
         out_uc = str(OUTPUT / "fig10a_unit_cell.png")
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": {
-            "name": "crystal.render_unit_cell",
+            "name": "crystal_render_unit_cell",
             "arguments": {
                 "handle": handle,
                 "output_file": out_uc,
@@ -122,7 +122,7 @@ def test_full_pipeline():
 
         # Create vacancy
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {
-            "name": "crystal.create_defect",
+            "name": "crystal_create_defect",
             "arguments": {"handle": handle, "defect_type": "vacancy", "site_index": 4},
         }})
         assert r["defect_type"] == "vacancy"
@@ -131,7 +131,7 @@ def test_full_pipeline():
 
         # List all structures
         r = send_and_parse(proc, {"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {
-            "name": "crystal.list_structures",
+            "name": "crystal_list_structures",
             "arguments": {},
         }})
         assert len(r["structures"]) >= 3

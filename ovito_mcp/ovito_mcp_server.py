@@ -17,6 +17,7 @@ from pathlib import Path
 
 _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR.parent))
+from mcp_runtime import resolve_tool_name
 from preview.notify import notify_preview
 
 OUTPUT_DIR = Path(os.environ.get(
@@ -1598,7 +1599,7 @@ def handle_render_multi_pipeline(args):
 
 TOOLS = {
     # ── I/O ───────────────────────────────────────────────────────────────
-    "ovito.import_file": {
+    "ovito_import_file": {
         "handler": handle_import_file,
         "description": (
             "Import atomistic data from CIF, LAMMPS dump/data, POSCAR, XYZ, GSD, "
@@ -1617,7 +1618,7 @@ TOOLS = {
             "required": ["file_path"],
         },
     },
-    "ovito.export_file": {
+    "ovito_export_file": {
         "handler": handle_export_file,
         "description": (
             "Export pipeline data to file. Formats: lammps/dump, lammps/data, xyz, vasp, "
@@ -1641,7 +1642,7 @@ TOOLS = {
             "required": ["handle", "output_path", "format"],
         },
     },
-    "ovito.create_pipeline": {
+    "ovito_create_pipeline": {
         "handler": handle_create_pipeline,
         "description": "Create an empty pipeline (StaticSource) for procedural data.",
         "inputSchema": {
@@ -1653,7 +1654,7 @@ TOOLS = {
             },
         },
     },
-    "ovito.load_trajectory": {
+    "ovito_load_trajectory": {
         "handler": handle_load_trajectory,
         "description": (
             "Load a topology+trajectory file pair (GROMACS TPR+XTC, AMBER prmtop+nc, "
@@ -1672,12 +1673,12 @@ TOOLS = {
     },
 
     # ── Pipeline Management ───────────────────────────────────────────────
-    "ovito.list_pipelines": {
+    "ovito_list_pipelines": {
         "handler": handle_list_pipelines,
         "description": "List all active OVITO pipelines with handles and paths.",
         "inputSchema": {"type": "object", "properties": {}},
     },
-    "ovito.pipeline_info": {
+    "ovito_pipeline_info": {
         "handler": handle_pipeline_info,
         "description": "Detailed pipeline inspection: data, modifiers, frames, all properties.",
         "inputSchema": {
@@ -1689,7 +1690,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.delete_pipeline": {
+    "ovito_delete_pipeline": {
         "handler": handle_delete_pipeline,
         "description": "Remove a pipeline from memory.",
         "inputSchema": {
@@ -1698,7 +1699,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.compute": {
+    "ovito_compute": {
         "handler": handle_compute,
         "description": "Evaluate the pipeline at a specific frame and return a data summary.",
         "inputSchema": {
@@ -1710,7 +1711,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.animation_settings": {
+    "ovito_animation_settings": {
         "handler": handle_animation_settings,
         "description": (
             "Configure trajectory playback: playback_ratio ('1:1', '1:3', '2:1'), "
@@ -1729,7 +1730,7 @@ TOOLS = {
     },
 
     # ── Modifiers ─────────────────────────────────────────────────────────
-    "ovito.add_modifier": {
+    "ovito_add_modifier": {
         "handler": handle_add_modifier,
         "description": (
             "Append an OVITO modifier to the pipeline. Use list_available_modifiers for full catalog. "
@@ -1748,7 +1749,7 @@ TOOLS = {
             "required": ["handle", "modifier"],
         },
     },
-    "ovito.remove_modifier": {
+    "ovito_remove_modifier": {
         "handler": handle_remove_modifier,
         "description": "Remove a modifier from the pipeline by 0-based index.",
         "inputSchema": {
@@ -1760,7 +1761,7 @@ TOOLS = {
             "required": ["handle", "index"],
         },
     },
-    "ovito.modify_modifier": {
+    "ovito_modify_modifier": {
         "handler": handle_modify_modifier,
         "description": (
             "Update parameters or toggle enable/disable on an existing modifier without removing it. "
@@ -1777,7 +1778,7 @@ TOOLS = {
             "required": ["handle", "index"],
         },
     },
-    "ovito.configure_color_gradient": {
+    "ovito_configure_color_gradient": {
         "handler": handle_configure_color_gradient,
         "description": (
             "Set the color gradient on a ColorCodingModifier. "
@@ -1793,12 +1794,12 @@ TOOLS = {
             "required": ["handle", "gradient"],
         },
     },
-    "ovito.list_available_modifiers": {
+    "ovito_list_available_modifiers": {
         "handler": handle_list_available_modifiers,
         "description": "List all OVITO modifier classes available for add_modifier.",
         "inputSchema": {"type": "object", "properties": {}},
     },
-    "ovito.run_python_script": {
+    "ovito_run_python_script": {
         "handler": handle_run_python_script,
         "description": (
             "Execute arbitrary OVITO Python code. Access: pipeline, data, ovito, numpy (np), output_dir. "
@@ -1815,7 +1816,7 @@ TOOLS = {
     },
 
     # ── Data Inspection ───────────────────────────────────────────────────
-    "ovito.inspect_data": {
+    "ovito_inspect_data": {
         "handler": handle_inspect_data,
         "description": "Comprehensive snapshot: particles, types, properties, bonds, cell, tables, attributes, meshes.",
         "inputSchema": {
@@ -1827,7 +1828,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.get_properties": {
+    "ovito_get_properties": {
         "handler": handle_get_properties,
         "description": "Extract per-particle or per-bond property values as JSON arrays with statistics.",
         "inputSchema": {
@@ -1842,7 +1843,7 @@ TOOLS = {
             "required": ["handle", "property"],
         },
     },
-    "ovito.get_attributes": {
+    "ovito_get_attributes": {
         "handler": handle_get_attributes,
         "description": "Get all global attributes (scalar quantities) from the pipeline output.",
         "inputSchema": {
@@ -1854,7 +1855,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.get_data_table": {
+    "ovito_get_data_table": {
         "handler": handle_get_data_table,
         "description": "Retrieve a named DataTable (histogram, RDF, etc.) as x/y arrays.",
         "inputSchema": {
@@ -1868,7 +1869,7 @@ TOOLS = {
             "required": ["handle", "table"],
         },
     },
-    "ovito.query_mesh": {
+    "ovito_query_mesh": {
         "handler": handle_query_mesh,
         "description": (
             "Query SurfaceMesh (volume, area, vertices, faces), DislocationNetwork "
@@ -1885,7 +1886,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.find_neighbors": {
+    "ovito_find_neighbors": {
         "handler": handle_find_neighbors,
         "description": (
             "Find neighbors of a particle. Modes: 'cutoff' (all within distance), "
@@ -1904,7 +1905,7 @@ TOOLS = {
             "required": ["handle", "particle_index"],
         },
     },
-    "ovito.manage_types": {
+    "ovito_manage_types": {
         "handler": handle_manage_types,
         "description": (
             "Rename particle/bond types or set their mass, radius, and color. "
@@ -1934,7 +1935,7 @@ TOOLS = {
             "required": ["handle", "types"],
         },
     },
-    "ovito.combine_datasets": {
+    "ovito_combine_datasets": {
         "handler": handle_combine_datasets,
         "description": (
             "Merge a secondary pipeline into the primary one using CombineDatasetsModifier. "
@@ -1949,7 +1950,7 @@ TOOLS = {
             "required": ["handle", "secondary_handle"],
         },
     },
-    "ovito.create_particles": {
+    "ovito_create_particles": {
         "handler": handle_create_particles,
         "description": (
             "Create particles programmatically from position arrays. "
@@ -1969,7 +1970,7 @@ TOOLS = {
             "required": ["positions"],
         },
     },
-    "ovito.measure": {
+    "ovito_measure": {
         "handler": handle_measure,
         "description": (
             "Measure distance (2 indices), angle (3 indices, vertex is middle), "
@@ -1987,7 +1988,7 @@ TOOLS = {
     },
 
     # ── Selection ─────────────────────────────────────────────────────────
-    "ovito.select_expression": {
+    "ovito_select_expression": {
         "handler": handle_select_expression,
         "description": "Select particles using a Boolean expression (e.g. 'Position.X > 5.0').",
         "inputSchema": {
@@ -1999,7 +2000,7 @@ TOOLS = {
             "required": ["handle", "expression"],
         },
     },
-    "ovito.select_type": {
+    "ovito_select_type": {
         "handler": handle_select_type,
         "description": "Select particles of specific type(s) by name.",
         "inputSchema": {
@@ -2013,7 +2014,7 @@ TOOLS = {
     },
 
     # ── Visualization ─────────────────────────────────────────────────────
-    "ovito.set_visual_style": {
+    "ovito_set_visual_style": {
         "handler": handle_set_visual_style,
         "description": "Configure particle radii, colors, and cell appearance.",
         "inputSchema": {
@@ -2029,7 +2030,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.set_camera": {
+    "ovito_set_camera": {
         "handler": handle_set_camera,
         "description": "Position camera (ortho/perspective). Use zoom_all=true to auto-fit.",
         "inputSchema": {
@@ -2046,7 +2047,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.configure_vis_element": {
+    "ovito_configure_vis_element": {
         "handler": handle_configure_vis_element,
         "description": (
             "Configure any visual element: particles, bonds, cell, surface, "
@@ -2066,7 +2067,7 @@ TOOLS = {
             "required": ["handle", "element"],
         },
     },
-    "ovito.add_overlay": {
+    "ovito_add_overlay": {
         "handler": handle_add_overlay,
         "description": (
             "Add viewport overlay: color_legend, text_label, coordinate_tripod, "
@@ -2087,7 +2088,7 @@ TOOLS = {
     },
 
     # ── Rendering ─────────────────────────────────────────────────────────
-    "ovito.render_image": {
+    "ovito_render_image": {
         "handler": handle_render_image,
         "description": "Render scene to PNG/TIFF using Tachyon, OSPRay, or ANARI ray-tracers.",
         "inputSchema": {
@@ -2109,7 +2110,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.render_animation": {
+    "ovito_render_animation": {
         "handler": handle_render_animation,
         "description": "Render animation (GIF/AVI/MP4) from trajectory.",
         "inputSchema": {
@@ -2130,7 +2131,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "ovito.render_multi_pipeline": {
+    "ovito_render_multi_pipeline": {
         "handler": handle_render_multi_pipeline,
         "description": "Render multiple pipelines together in a single scene.",
         "inputSchema": {
@@ -2229,7 +2230,7 @@ def handle_tools_list():
 
 
 def handle_tools_call(params):
-    tool_name = params.get("name")
+    tool_name = resolve_tool_name(params.get("name"), TOOLS)
     arguments = params.get("arguments", {})
 
     if tool_name not in TOOLS:

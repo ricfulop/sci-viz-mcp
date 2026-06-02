@@ -18,6 +18,8 @@ from pathlib import Path
 
 _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR))
+sys.path.insert(0, str(_THIS_DIR.parent))
+from mcp_runtime import resolve_tool_name
 
 import numpy as np
 
@@ -392,7 +394,7 @@ def handle_list_structures(args):
 # ── Tool registry ────────────────────────────────────────────────────────────
 
 TOOLS = {
-    "crystal.import_structure": {
+    "crystal_import_structure": {
         "handler": handle_import_structure,
         "description": "Load a crystal structure from CIF, POSCAR, XYZ, or other ASE-readable format. Returns a handle for subsequent operations.",
         "inputSchema": {
@@ -404,7 +406,7 @@ TOOLS = {
             "required": ["file_path"],
         },
     },
-    "crystal.build_supercell": {
+    "crystal_build_supercell": {
         "handler": handle_build_supercell,
         "description": "Build an NxMxL supercell from a loaded structure. Returns a new handle.",
         "inputSchema": {
@@ -419,7 +421,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "crystal.create_defect": {
+    "crystal_create_defect": {
         "handler": handle_create_defect,
         "description": "Create a point defect (vacancy, substitution, or interstitial) in a loaded structure.",
         "inputSchema": {
@@ -441,7 +443,7 @@ TOOLS = {
             "required": ["handle", "defect_type"],
         },
     },
-    "crystal.get_symmetry": {
+    "crystal_get_symmetry": {
         "handler": handle_get_symmetry,
         "description": "Return space group, Wyckoff positions, and equivalent sites for a loaded structure.",
         "inputSchema": {
@@ -453,7 +455,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "crystal.render_lattice": {
+    "crystal_render_lattice": {
         "handler": handle_render_lattice,
         "description": "Render a 2D lattice projection to PDF/PNG/SVG. Configurable projection axis, atom styles, bond display.",
         "inputSchema": {
@@ -477,7 +479,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "crystal.render_unit_cell": {
+    "crystal_render_unit_cell": {
         "handler": handle_render_unit_cell,
         "description": "Render an annotated unit cell with Wyckoff labels, bond-length annotations, and lattice parameter callouts.",
         "inputSchema": {
@@ -498,7 +500,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "crystal.compare_structures": {
+    "crystal_compare_structures": {
         "handler": handle_compare_structures,
         "description": "Side-by-side rendering of two structures (e.g., fluorite vs rocksalt transformation).",
         "inputSchema": {
@@ -518,7 +520,7 @@ TOOLS = {
             "required": ["handle_a", "handle_b"],
         },
     },
-    "crystal.export_tikz": {
+    "crystal_export_tikz": {
         "handler": handle_export_tikz,
         "description": "Generate TikZ/PGF code for a lattice diagram, compatible with LaTeX workflows.",
         "inputSchema": {
@@ -537,7 +539,7 @@ TOOLS = {
             "required": ["handle"],
         },
     },
-    "crystal.list_structures": {
+    "crystal_list_structures": {
         "handler": handle_list_structures,
         "description": "List all currently loaded crystal structures with their handles.",
         "inputSchema": {
@@ -570,7 +572,7 @@ def handle_tools_list():
 
 
 def handle_tools_call(params):
-    tool_name = params.get("name")
+    tool_name = resolve_tool_name(params.get("name"), TOOLS)
     arguments = params.get("arguments", {})
 
     if tool_name not in TOOLS:
