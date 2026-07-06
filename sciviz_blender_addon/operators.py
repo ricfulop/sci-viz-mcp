@@ -36,6 +36,56 @@ from .properties import PRESET_ITEMS
 
 # ── helpers ─────────────────────────────────────────────────────────────────
 
+ATTRIBUTION_TEXT = (
+    "Designed with Sci-Viz (c) 2026 Ric Fulop, MIT Center for Bits and Atoms"
+)
+
+
+def _attribution_enabled() -> bool:
+    return os.environ.get("SCIVIZ_ATTRIBUTION", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
+def _stamp_image_file(path: str) -> None:
+    if not _attribution_enabled():
+        return
+    try:
+        from PIL import Image, ImageDraw, ImageFont  # type: ignore
+    except Exception:
+        return
+
+    suffix = Path(path).suffix.lower()
+    if suffix not in {".png", ".jpg", ".jpeg", ".tif", ".tiff"}:
+        return
+    try:
+        im = Image.open(path).convert("RGBA")
+        draw = ImageDraw.Draw(im, "RGBA")
+        font_size = max(12, im.width // 95)
+        try:
+            font = ImageFont.truetype("Arial.ttf", font_size)
+        except Exception:
+            font = ImageFont.load_default()
+        bbox = draw.textbbox((0, 0), ATTRIBUTION_TEXT, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        pad = max(6, font_size // 2)
+        x = im.width - tw - 2 * pad
+        y = im.height - th - 2 * pad
+        draw.rounded_rectangle(
+            (x - pad, y - pad, im.width - pad, im.height - pad),
+            radius=max(4, pad // 2),
+            fill=(0, 0, 0, 96),
+        )
+        draw.text((x, y), ATTRIBUTION_TEXT, fill=(255, 255, 255, 210), font=font)
+        if suffix in {".jpg", ".jpeg"}:
+            im = im.convert("RGB")
+        im.save(path)
+    except Exception:
+        return
+
 
 def _emit_result(payload: dict) -> None:
     print("RESULT:" + json.dumps(payload))
@@ -328,6 +378,7 @@ class SCIVIZ_OT_render_hq(Operator):
         scene.render.image_settings.color_depth = "16"
 
         bpy.ops.render.render(write_still=True)
+        _stamp_image_file(out)
 
         notify_preview(
             output_file=out,
@@ -340,6 +391,7 @@ class SCIVIZ_OT_render_hq(Operator):
             "width": self.width,
             "height": self.height,
             "samples": self.samples,
+            "attribution": ATTRIBUTION_TEXT,
         }
         _emit_result(result)
         self.report({"INFO"}, f"Rendered → {out}")

@@ -20,6 +20,7 @@ _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR))
 sys.path.insert(0, str(_THIS_DIR.parent))
 from mcp_runtime import resolve_tool_name
+from attribution import ATTRIBUTION_TEXT
 
 import numpy as np
 
@@ -288,7 +289,8 @@ def handle_render_lattice(args):
     )
 
     notify_preview(result_path, "crystal.render_lattice", args, "crystal_mcp")
-    return {"output_file": result_path, "handle": handle}
+    return {"output_file": result_path, "handle": handle,
+            "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_render_unit_cell(args):
@@ -317,7 +319,8 @@ def handle_render_unit_cell(args):
     )
 
     notify_preview(result_path, "crystal.render_unit_cell", args, "crystal_mcp")
-    return {"output_file": result_path, "handle": handle}
+    return {"output_file": result_path, "handle": handle,
+            "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_compare_structures(args):
@@ -348,7 +351,7 @@ def handle_compare_structures(args):
     )
 
     notify_preview(result_path, "crystal.compare_structures", args, "crystal_mcp")
-    return {"output_file": result_path}
+    return {"output_file": result_path, "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_export_tikz(args):
@@ -374,7 +377,8 @@ def handle_export_tikz(args):
     )
 
     notify_preview(result_path, "crystal.export_tikz", args, "crystal_mcp")
-    return {"output_file": result_path, "handle": handle}
+    return {"output_file": result_path, "handle": handle,
+            "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_list_structures(args):

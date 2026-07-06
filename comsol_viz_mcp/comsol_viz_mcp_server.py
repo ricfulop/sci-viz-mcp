@@ -24,6 +24,7 @@ from mcp_runtime import (
     configure_stdio_logging,
     resolve_tool_name,
 )
+from attribution import ATTRIBUTION_TEXT, add_figure_attribution
 
 configure_stdio_logging()
 configure_matplotlib_for_mcp()
@@ -196,11 +197,13 @@ def handle_render_field_map(args):
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
     notify_preview(output_path, "comsol_viz.render_field_map", args, "comsol_viz_mcp")
-    return {"output_file": output_path, "handle": handle, "field": field_name}
+    return {"output_file": output_path, "handle": handle, "field": field_name,
+            "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_render_line_cut(args):
@@ -264,6 +267,7 @@ def handle_render_line_cut(args):
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
@@ -273,6 +277,7 @@ def handle_render_line_cut(args):
         "n_points": int(mask.sum()),
         "cut_axis": axis,
         "cut_value": float(cut_value),
+        "attribution": ATTRIBUTION_TEXT,
     }
 
 
@@ -304,11 +309,13 @@ def handle_render_mesh(args):
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
 
     notify_preview(output_path, "comsol_viz.render_mesh", args, "comsol_viz_mcp")
-    return {"output_file": output_path, "n_points": len(coords), "n_triangles": len(tri.triangles)}
+    return {"output_file": output_path, "n_points": len(coords),
+            "n_triangles": len(tri.triangles), "attribution": ATTRIBUTION_TEXT}
 
 
 def handle_list_datasets(args):

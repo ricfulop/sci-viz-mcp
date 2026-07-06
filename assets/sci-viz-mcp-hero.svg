@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Sci-Viz MCP engineering design tools hero graphic</title>
+  <desc id="desc">AI-controlled headless engineering design tools: COMSOL, ray optics, crystals, OVITO, Blender, APS and Nature styles.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="70%">
+      <stop offset="0%" stop-color="#14243a"/>
+      <stop offset="55%" stop-color="#07111f"/>
+      <stop offset="100%" stop-color="#02050a"/>
+    </radialGradient>
+    <linearGradient id="cyan" x1="0" x2="1">
+      <stop offset="0%" stop-color="#56b4e9"/>
+      <stop offset="100%" stop-color="#00e5ff"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" x2="1">
+      <stop offset="0%" stop-color="#f0e442"/>
+      <stop offset="100%" stop-color="#e69f00"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" x2="1">
+      <stop offset="0%" stop-color="#cc79a7"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#26445f" stroke-width="1" opacity="0.22"/>
+    </pattern>
+    <style>
+      .panel{fill:#081828;stroke:#375a77;stroke-width:2;rx:24}
+      .label{font-family:Inter,Arial,sans-serif;font-weight:700;font-size:27px;fill:#dcecff}
+      .small{font-family:Inter,Arial,sans-serif;font-size:18px;fill:#9fb8cf}
+      .micro{font-family:Inter,Arial,sans-serif;font-size:15px;fill:#9fb8cf}
+      .wire{fill:none;stroke:#56b4e9;stroke-width:3;opacity:.85}
+      .dim{opacity:.55}
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+  <g opacity="0.22">
+    <path d="M80,760 C360,560 540,520 800,450 C1050,380 1220,260 1520,150" class="wire"/>
+    <path d="M80,140 C330,280 515,350 800,450 C1060,540 1280,650 1520,780" class="wire"/>
+  </g>
+
+  <g transform="translate(520 310)" filter="url(#glow)">
+    <rect x="0" y="0" width="560" height="270" rx="34" fill="#07111f" stroke="url(#cyan)" stroke-width="3"/>
+    <text x="280" y="104" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="74" font-weight="800" fill="#f6fbff">Sci-Viz MCP</text>
+    <text x="280" y="156" text-anchor="middle" class="small">AI control for headless engineering design tools</text>
+    <g transform="translate(85 190)">
+      <rect x="0" y="0" width="88" height="34" rx="17" fill="#0d2b42" stroke="#56b4e9"/>
+      <text x="44" y="23" text-anchor="middle" class="micro" fill="#dff7ff">APS</text>
+      <rect x="112" y="0" width="118" height="34" rx="17" fill="#1e1730" stroke="#cc79a7"/>
+      <text x="171" y="23" text-anchor="middle" class="micro" fill="#f3dcff">Nature</text>
+      <rect x="256" y="0" width="210" height="34" rx="17" fill="#102417" stroke="#009e73"/>
+      <text x="361" y="23" text-anchor="middle" class="micro" fill="#ddffe9">journal figure styles</text>
+    </g>
+  </g>
+
+  <!-- COMSOL / multiphysics -->
+  <g transform="translate(95 88)">
+    <rect class="panel" width="365" height="220" rx="24"/>
+    <text x="28" y="44" class="label">COMSOL</text>
+    <text x="28" y="72" class="small">thermal | EM | structures</text>
+    <g transform="translate(35 105)">
+      <path d="M0 72 C55 8 126 112 192 36 C248 -28 278 72 300 18" fill="none" stroke="url(#amber)" stroke-width="8" opacity=".95"/>
+      <path d="M6 5 L302 5 M6 38 L302 38 M6 71 L302 71" stroke="#375a77" stroke-width="1.5"/>
+      <path d="M42 -10 L42 92 M112 -10 L112 92 M182 -10 L182 92 M252 -10 L252 92" stroke="#375a77" stroke-width="1.5"/>
+      <path d="M5 86 C60 58 105 66 156 50 S252 22 310 44" fill="none" stroke="#00e5ff" stroke-width="3"/>
+    </g>
+  </g>
+
+  <!-- Ray optics -->
+  <g transform="translate(1110 82)">
+    <rect class="panel" width="395" height="236" rx="24"/>
+    <text x="28" y="44" class="label">2D Ray Optics</text>
+    <text x="28" y="72" class="small">all major telescope designs</text>
+    <g transform="translate(34 108)">
+      <path d="M0 14 L320 52" stroke="#f0e442" stroke-width="3"/>
+      <path d="M0 52 L320 52" stroke="#f0e442" stroke-width="3"/>
+      <path d="M0 90 L320 52" stroke="#f0e442" stroke-width="3"/>
+      <ellipse cx="118" cy="52" rx="12" ry="70" fill="#dff7ff" opacity=".35" stroke="#e8fbff"/>
+      <path d="M245 -10 C300 20 300 84 245 114" fill="none" stroke="#56b4e9" stroke-width="5"/>
+      <line x1="322" y1="15" x2="322" y2="92" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="322" cy="52" r="5" fill="#ffffff"/>
+    </g>
+  </g>
+
+  <!-- Crystal -->
+  <g transform="translate(100 570)">
+    <rect class="panel" width="340" height="220" rx="24"/>
+    <text x="28" y="44" class="label">Crystals</text>
+    <text x="28" y="72" class="small">ASE | pymatgen</text>
+    <g transform="translate(76 105)" stroke="#bcd6ef" stroke-width="2">
+      <path d="M0 70 L90 22 L186 64 L90 116 Z" fill="none"/>
+      <path d="M0 70 L0 0 L90 -48 L90 22 M186 64 L186 -6 L90 -48"/>
+      <circle cx="0" cy="70" r="13" fill="#e74c3c"/>
+      <circle cx="90" cy="22" r="17" fill="#4a86c8"/>
+      <circle cx="186" cy="64" r="13" fill="#e74c3c"/>
+      <circle cx="90" cy="116" r="17" fill="#4a86c8"/>
+      <circle cx="0" cy="0" r="13" fill="#e74c3c"/>
+      <circle cx="90" cy="-48" r="17" fill="#4a86c8"/>
+      <circle cx="186" cy="-6" r="13" fill="#e74c3c"/>
+    </g>
+  </g>
+
+  <!-- OVITO -->
+  <g transform="translate(630 625)">
+    <rect class="panel" width="340" height="210" rx="24"/>
+    <text x="28" y="44" class="label">OVITO</text>
+    <text x="28" y="72" class="small">atomistic analysis + rendering</text>
+    <g transform="translate(72 105)">
+      <circle cx="10" cy="24" r="10" fill="#56b4e9"/>
+      <circle cx="52" cy="-5" r="13" fill="#009e73"/>
+      <circle cx="96" cy="32" r="11" fill="#e69f00"/>
+      <circle cx="142" cy="1" r="14" fill="#cc79a7"/>
+      <circle cx="186" cy="42" r="10" fill="#56b4e9"/>
+      <circle cx="74" cy="78" r="14" fill="#009e73"/>
+      <circle cx="135" cy="88" r="11" fill="#e69f00"/>
+      <g stroke="#9fb8cf" opacity=".45">
+        <line x1="10" y1="24" x2="52" y2="-5"/>
+        <line x1="52" y1="-5" x2="96" y2="32"/>
+        <line x1="96" y1="32" x2="142" y2="1"/>
+        <line x1="96" y1="32" x2="74" y2="78"/>
+        <line x1="142" y1="1" x2="186" y2="42"/>
+        <line x1="74" y1="78" x2="135" y2="88"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Blender -->
+  <g transform="translate(1120 570)">
+    <rect class="panel" width="360" height="220" rx="24"/>
+    <text x="28" y="44" class="label">Blender</text>
+    <text x="28" y="72" class="small">3D rendering via Foundation MCP</text>
+    <g transform="translate(82 108)">
+      <path d="M80 0 L160 45 L80 92 L0 45 Z" fill="url(#violet)" opacity=".82" stroke="#f3dcff"/>
+      <path d="M80 0 L80 92 M0 45 L160 45" stroke="#f3dcff" opacity=".45"/>
+      <path d="M205 20 l52 -22 v92 l-52 -22 z" fill="#081828" stroke="#56b4e9" stroke-width="4"/>
+      <circle cx="210" cy="44" r="16" fill="#56b4e9" opacity=".9"/>
+      <path d="M238 44 L310 12 M238 44 L310 76" stroke="#56b4e9" opacity=".35" stroke-width="3"/>
+    </g>
+  </g>
+
+  <!-- Connections -->
+  <g stroke-width="3" fill="none" opacity=".75">
+    <path d="M460 198 C540 240 555 300 635 345" stroke="#56b4e9"/>
+    <path d="M1110 200 C1048 245 1010 300 965 345" stroke="#f0e442"/>
+    <path d="M440 670 C540 610 575 555 635 520" stroke="#4a86c8"/>
+    <path d="M800 625 C800 595 800 580 800 580" stroke="#009e73"/>
+    <path d="M1120 670 C1048 610 1008 560 965 520" stroke="#cc79a7"/>
+  </g>
+
+  <text x="800" y="878" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="19" fill="#8ba5bc">
+    Designed with Sci-Viz (c) 2026 Ric Fulop, MIT Center for Bits and Atoms
+  </text>
+</svg>

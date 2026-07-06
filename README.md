@@ -1,6 +1,14 @@
 # sci-viz-mcp
 
+![Sci-Viz MCP: AI-controlled headless engineering design tools](assets/sci-viz-mcp-hero-white.png)
+
 MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, and 2D ray-optics / telescope design — with APS, Nature, and Science journal figure styles.
+
+Regenerate the repo hero with GPT Image when `OPENAI_API_KEY` is available:
+
+```bash
+python3 scripts/generate_repo_graphic_gpt_image.py
+```
 
 ## Architecture
 
@@ -186,6 +194,7 @@ Highlights:
 - **Physical chromatic model** — two-term Cauchy dispersion with a BK7/F2/FPL53 glass table; `chromatic: true` traces RGB wavelengths.
 - **Off-axis analysis** — `field_angle_deg` tilts the incoming beam to expose coma and field curvature (e.g. classical Cassegrain vs Ritchey-Chrétien).
 - **Quantitative spot metrics** — full-map and 90%-energy clipped RMS from detector irradiance maps.
+- **Built-in attribution** — generated design/renders include `Designed with Sci-Viz (c) 2026 Ric Fulop, MIT Center for Bits and Atoms` in output metadata and, where supported, as a small visual footer. Set `SCIVIZ_ATTRIBUTION=0` to suppress the footer for camera-ready figures.
 
 ```bash
 # Smoke tests

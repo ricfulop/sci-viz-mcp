@@ -26,6 +26,7 @@ _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR))
 sys.path.insert(0, str(_THIS_DIR.parent))
 from mcp_runtime import resolve_tool_name
+from attribution import ATTRIBUTION_TEXT, stamp_image_file
 from engine import run_scene
 from telescope_designs import BUILDERS, CHROMATIC_DEFAULT
 
@@ -301,6 +302,7 @@ def handle_render(args):
     )
     data = result["images"][0]["dataUrl"].split(",", 1)[1]
     Path(out).write_bytes(base64.b64decode(data))
+    stamp_image_file(out)
 
     notify_preview(out, "ray_optics_render", {"scene_id": args["scene_id"]},
                    server_name="ray_optics_mcp")
@@ -311,6 +313,7 @@ def handle_render(args):
         "processedRayCount": result.get("processedRayCount"),
         "error": result.get("error"),
         "warning": result.get("warning"),
+        "attribution": ATTRIBUTION_TEXT,
     }
 
 
@@ -341,6 +344,7 @@ def handle_make_telescope(args):
         "scene_id": scene_id,
         "path": path,
         "design_info": info,
+        "attribution": ATTRIBUTION_TEXT,
         "objects": [_obj_summary(i, o) for i, o in enumerate(objs)],
         "hint": "Use ray_optics_render to see it, ray_optics_simulate for detector "
                 "readings, and the object tools to modify the design.",

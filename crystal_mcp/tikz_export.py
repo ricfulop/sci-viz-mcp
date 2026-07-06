@@ -8,6 +8,10 @@ matching the style of the fig10 TikZ panels.
 
 import numpy as np
 from pathlib import Path
+import sys as _sys
+
+_sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+from attribution import ATTRIBUTION_TEXT
 
 DEFAULT_COLORS = {
     "Zr": ("zrblue", "4a86c8"),
@@ -162,6 +166,14 @@ def export_tikz(
             r"\node[right, font=\tiny] at (%.4f, %.4f) {%s};"
             % (lx + r + 0.1, ly, elem)
         )
+    lines.append("")
+
+    lines.append("% Sci-Viz attribution")
+    lines.append(
+        r"\node[anchor=south east, font=\tiny, text=black!45] "
+        r"at (%.4f, %.4f) {%s};"
+        % (x.max() + 0.5, y.min() - 1.3, ATTRIBUTION_TEXT)
+    )
     lines.append("")
 
     lines.append(r"\end{tikzpicture}")

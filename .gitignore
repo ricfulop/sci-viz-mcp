@@ -1,4 +1,5 @@
 .venv/
+.env
 .matplotlib_cache/
 output/
 ray_optics_mcp/vendor/node_modules/

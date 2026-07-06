@@ -48,6 +48,7 @@ DEFAULT_RADII = {
 import sys as _sys
 _sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 from styles import get_style_dict, _APS_RCPARAMS, _NATURE_RCPARAMS
+from attribution import add_figure_attribution
 
 _STYLE_PRESETS = {
     "aps": _APS_RCPARAMS,
@@ -235,6 +236,7 @@ def render_lattice_projection(
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight", pad_inches=0.06,
                 facecolor=background)
     plt.close(fig)
@@ -355,6 +357,7 @@ def render_unit_cell(
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight", pad_inches=0.06)
     plt.close(fig)
     return output_path
@@ -427,6 +430,7 @@ def render_compare_structures(
 
     output_path = str(Path(output_file).resolve())
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    add_figure_attribution(fig)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight", pad_inches=0.06)
     plt.close(fig)
     return output_path

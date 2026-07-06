@@ -18,6 +18,7 @@ from pathlib import Path
 _THIS_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(_THIS_DIR.parent))
 from mcp_runtime import resolve_tool_name
+from attribution import ATTRIBUTION_TEXT, stamp_image_file
 from preview.notify import notify_preview
 
 OUTPUT_DIR = Path(os.environ.get(
@@ -1465,12 +1466,14 @@ def handle_render_image(args):
     finally:
         pipeline.remove_from_scene()
 
+    stamp_image_file(output_path)
     notify_preview(output_path, "ovito.render_image", args, "ovito_mcp")
     return {
         "output_file": output_path,
         "width": width,
         "height": height,
         "handle": handle,
+        "attribution": ATTRIBUTION_TEXT,
     }
 
 
@@ -1584,12 +1587,14 @@ def handle_render_multi_pipeline(args):
         for entry in entries:
             entry["pipeline"].remove_from_scene()
 
+    stamp_image_file(output_path)
     notify_preview(output_path, "ovito.render_multi_pipeline", args, "ovito_mcp")
     return {
         "output_file": output_path,
         "width": width,
         "height": height,
         "handles": handles,
+        "attribution": ATTRIBUTION_TEXT,
     }
 
 
