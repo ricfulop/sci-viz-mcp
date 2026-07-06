@@ -1,6 +1,6 @@
 # sci-viz-mcp
 
-MCP servers for scientific visualization — crystal structures, atomistic rendering, 3D rendering, and COMSOL field visualization — with APS, Nature, and Science journal figure styles.
+MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, and 2D ray-optics / telescope design — with APS, Nature, and Science journal figure styles.
 
 ## Architecture
 
@@ -13,6 +13,8 @@ Cursor IDE (any chat, any repo)
   │                    Foundation MCP        add-on (sciviz_blender_addon
   │                    server                registers bpy.ops.sciviz.*)
   ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
+  ├── ray_optics_mcp ─ ray-optics engine ─ 2D optical design, telescope
+  │                    (Node.js, vendored)   presets, ray-traced spot metrics
   │
   ├── styles.py ────── APS / Nature / Science rcParams, Okabe-Ito, column widths
   └── science-figure-style/ ── AAAS figure spec (SKILL.md) + example_figure.py
@@ -155,10 +157,47 @@ Publication-quality visualization of COMSOL field exports.
 | `comsol_viz_list_datasets` | List loaded field datasets |
 | `comsol_viz_get_field_stats` | Min/max/mean of field data |
 
+### ray_optics_mcp (14 tools)
+AI-driven 2D geometric optics on the vendored [ray-optics](https://github.com/ricktu288/ray-optics) engine (Node.js, headless). Scene JSON is fully compatible with the [web simulator](https://phydemo.app/ray-optics/simulator/), so scenes can be hand-edited there and reloaded.
+
+**Full manual:** [`ray_optics_mcp/TELESCOPE_DESIGN_MANUAL.md`](ray_optics_mcp/TELESCOPE_DESIGN_MANUAL.md) — conventions, all presets with prescriptions, spot metrics, auto-tuning internals, engine gotchas, and how to add new designs.
+
+| Tool | Description |
+|------|-------------|
+| `ray_optics_new_scene` / `ray_optics_load_scene` / `ray_optics_save_scene` | Create, load, persist scene JSON |
+| `ray_optics_get_scene` / `ray_optics_list_scenes` / `ray_optics_list_objects` | Inspect scenes and objects |
+| `ray_optics_add_objects` / `ray_optics_update_object` / `ray_optics_remove_objects` | Edit any engine object (mirrors, glass, lenses, detectors, …) |
+| `ray_optics_set_scene_settings` | Ray density, chromatic simulation, viewport |
+| `ray_optics_simulate` | Detector readings: power + 1D irradiance map (spot profiles) |
+| `ray_optics_render` | Auto-framed PNG render (streams to the live preview dashboard) |
+| `ray_optics_make_telescope` | Parametric telescope presets — 18 designs, see below |
+| `ray_optics_reference` | Engine object/format documentation |
+
+**Telescope preset library (18 designs, correct conic/glass prescriptions):**
+
+| Family | Designs |
+|--------|---------|
+| Reflectors | `newtonian`, `prime_focus`, `herschelian` (off-axis, unobstructed), `cassegrain` (classical), `ritchey_chretien` (aplanatic), `dall_kirkham`, `gregorian`, `nasmyth` |
+| Catadioptrics (auto-tuned) | `schmidt_camera`, `schmidt_cassegrain`, `maksutov_cassegrain` (Gregory spot) |
+| Refractors | `keplerian_refractor`, `galilean_refractor`, `singlet_refractor` (chromatic demo), `achromat_doublet` (BK7+F2), `petzval_refractor`, `apo_triplet` (FPL53 ED, bendings auto-tuned), `flatfield_petzval` (quadruplet/quintuplet, tuned for flat-plane spot on- and off-axis) |
+
+Highlights:
+- **Engine-in-the-loop auto-tuning** — Schmidt corrector strengths, Maksutov meniscus radii, apo-triplet element bendings, and Petzval field flatteners are optimized by minimizing the ray-traced RMS spot (golden-section / coordinate descent), not by closed-form guesses.
+- **Physical chromatic model** — two-term Cauchy dispersion with a BK7/F2/FPL53 glass table; `chromatic: true` traces RGB wavelengths.
+- **Off-axis analysis** — `field_angle_deg` tilts the incoming beam to expose coma and field curvature (e.g. classical Cassegrain vs Ritchey-Chrétien).
+- **Quantitative spot metrics** — full-map and 90%-energy clipped RMS from detector irradiance maps.
+
+```bash
+# Smoke tests
+cd ray_optics_mcp
+python3 validate_designs.py   # traces all 18 presets, power + RMS report
+python3 test_e2e.py           # full MCP round-trip incl. renders
+```
+
 ## Live Preview Dashboard
 
-Every render from any MCP server (crystal, OVITO, Blender, COMSOL) appears in
-a browser-based live preview dashboard in real time.
+Every render from any MCP server (crystal, OVITO, Blender, COMSOL, ray optics)
+appears in a browser-based live preview dashboard in real time.
 
 ```
 MCP servers ──POST /api/render──▶ preview server ──WebSocket──▶ browser dashboard

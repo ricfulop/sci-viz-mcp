@@ -1,6 +1,6 @@
 [project]
 name = "sci-viz-mcp"
-version = "0.4.1"
+version = "0.5.0"
 description = "MCP servers for scientific visualization: crystal structures (ASE/pymatgen), atomistic rendering (OVITO), Blender via the official Blender Foundation MCP server, and COMSOL field maps"
 requires-python = ">=3.10"
 dependencies = [
