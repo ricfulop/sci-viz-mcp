@@ -847,7 +847,7 @@ def _achromat_surfaces(f, D, x_l):
     h = D / 2 + 8
     ct1 = 2 * abs(_sag_std(R1, h)) + 6
     gap = 0.8
-    ct2 = abs(_sag_std(R3, h)) + abs(_sag_std(R4, h)) * 0 + 6
+    ct2 = abs(_sag_std(R3, h)) + abs(_sag_std(R4, h)) + 6
     x2 = x_l + ct1 + gap
     lenses = [(x_l, R1, R2, ct1, "BK7"), (x2, R3, R4, ct2, "F2")]
     return lenses, h
