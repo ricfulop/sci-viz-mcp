@@ -2,13 +2,6 @@
 
 ![Sci-Viz MCP: AI-controlled headless engineering design tools](assets/sci-viz-mcp-hero-white.png)
 
-MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, and 2D ray-optics / telescope design — with APS, Nature, and Science journal figure styles.
-
-Regenerate the repo hero with GPT Image when `OPENAI_API_KEY` is available:
-
-```bash
-python3 scripts/generate_repo_graphic_gpt_image.py
-```
 
 ## Architecture
 
