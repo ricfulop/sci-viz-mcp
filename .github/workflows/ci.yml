@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install core deps (no ovito/mph — heavy or license-gated)
+        run: pip install ase pymatgen matplotlib numpy spglib h5py pyyaml aiohttp
+      - name: Syntax check all servers
+        run: |
+          python -m compileall -q crystal_mcp comsol_mcp comsol_viz_mcp ovito_mcp ray_optics_mcp preview scripts attribution.py styles.py mcp_runtime.py
+      - name: MCP protocol smoke test (initialize + tools/list on each Python server)
+        run: |
+          for srv in crystal_mcp/crystal_mcp_server.py comsol_viz_mcp/comsol_viz_mcp_server.py comsol_mcp/comsol_mcp_server.py; do
+            echo "== $srv"
+            printf '%s\n' \
+              '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+              '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+              | python "$srv" | python -c "
+          import sys, json
+          lines = [json.loads(l) for l in sys.stdin]
+          assert lines[0]['result']['serverInfo']['name'], 'no serverInfo'
+          assert len(lines[1]['result']['tools']) > 0, 'no tools'
+          print('  ok:', lines[0]['result']['serverInfo']['name'], len(lines[1]['result']['tools']), 'tools')
+          "
+          done
+      - name: Figure style tests
+        run: python tests/test_comsol_viz.py
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build pixinsight_mcp
+        working-directory: pixinsight_mcp
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build

@@ -8,6 +8,23 @@ This server lets an AI assistant control PixInsight for astrophotography
 processing through PixInsight's PJSR scripting engine. PixInsight has no HTTP
 or socket automation API, so the bridge uses file-based IPC:
 
+## Licensing — read this first
+
+This module is only a *bridge*. It does not include, replace, or license
+the software it controls:
+
+- **PixInsight** is commercial software. You need a valid PixInsight
+  license from [pixinsight.com](https://pixinsight.com/) — every tool in
+  this module executes inside a running PixInsight instance.
+- **RC Astro plugins** — the sharpening, denoising, and star-removal
+  workflows this module recommends and drives (BlurXTerminator,
+  NoiseXTerminator, StarXTerminator) are commercial PixInsight plugins
+  sold separately by [RC Astro](https://www.rc-astro.com/). Install and
+  license them in PixInsight before using those workflows; without them
+  the corresponding tool calls will fail inside PixInsight.
+- The bridge code itself is MIT-licensed (vendored from
+  `aescaffre/pixinsight-mcp`, see `THIRD_PARTY_NOTICE.md`).
+
 ```
 Cursor / MCP client
   └─ stdio → pixinsight_mcp/build/index.js
@@ -20,7 +37,7 @@ PixInsight
 ## Setup
 
 ```bash
-cd /Users/ricfulop/voltivity/sci-viz-mcp/pixinsight_mcp
+cd <repo>/pixinsight_mcp
 npm install
 npm run build
 npm run setup-bridge
@@ -46,9 +63,9 @@ Example `~/.cursor/mcp.json` entry:
     "pixinsight": {
       "command": "node",
       "args": [
-        "/Users/ricfulop/voltivity/sci-viz-mcp/pixinsight_mcp/build/index.js"
+        "<repo>/pixinsight_mcp/build/index.js"
       ],
-      "cwd": "/Users/ricfulop/voltivity/sci-viz-mcp/pixinsight_mcp"
+      "cwd": "<repo>/pixinsight_mcp"
     }
   }
 }

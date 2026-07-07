@@ -5,3 +5,6 @@ numpy
 spglib
 ovito
 aiohttp
+h5py
+mph
+pyyaml

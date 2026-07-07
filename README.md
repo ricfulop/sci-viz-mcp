@@ -2,9 +2,76 @@
 
 ![Sci-Viz MCP: AI-controlled headless engineering design tools](assets/sci-viz-mcp-hero-white.png)
 
-MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, 2D ray-optics / telescope design, and PixInsight astrophotography processing — with APS, Nature, and Science journal figure styles.
+**AI-controlled headless engineering and science tools.** This repo is a
+collection of [MCP](https://modelcontextprotocol.io/) servers that let an AI
+assistant (Cursor, Claude Desktop, Claude Code, ...) drive real
+engineering software — COMSOL simulation, 2D ray-optics and telescope
+design, crystal structure visualization, atomistic rendering, Blender 3D
+rendering, and PixInsight astrophotography — and produce
+publication-quality figures in APS, Nature, and Science journal styles.
 
-Regenerate the repo hero with GPT Image when `OPENAI_API_KEY` is available:
+## What's in the box
+
+| Server | What it does | Engine underneath | Needs a paid license? |
+|--------|--------------|-------------------|:---:|
+| `comsol_mcp` | Runs COMSOL models headlessly: open, parameterize, mesh, solve, export fields/KPIs | COMSOL via [mph](https://mph.readthedocs.io/) Java bridge | Yes — COMSOL |
+| `comsol_viz_mcp` | Turns COMSOL field exports into APS/Nature-styled figures | matplotlib | No |
+| `ray_optics_mcp` | 2D geometric optics + 18 parametric telescope designs with auto-tuned optics | vendored [ray-optics](https://github.com/ricktu288/ray-optics) (Node.js) | No |
+| `crystal_mcp` | Crystal structures, defects, symmetry, lattice figures, TikZ export | ASE + pymatgen | No |
+| `ovito_mcp` | Atomistic rendering and analysis (ray-traced) | OVITO Python API | No |
+| `blender` | Photorealistic 3D rendering | Blender + official Foundation MCP server | No |
+| `pixinsight_mcp` | Astrophotography processing (gradients, color, stretch, deconvolution, LRGB) | PixInsight PJSR bridge (vendored, MIT) | Yes — PixInsight + RC Astro plugins |
+
+Cross-cutting pieces:
+
+- **`styles.py`** — APS / Nature / Science rcParams, Okabe-Ito colors,
+  journal column widths. The canonical figure-style source for all
+  Voltivity repos.
+- **Live preview dashboard** — every render from any server streams to a
+  browser dashboard at [http://localhost:8765](http://localhost:8765).
+- **Attribution stamping** — outputs carry `Designed with Sci-Viz (c) 2026
+  Ric Fulop, MIT Center for Bits and Atoms` in metadata and, where
+  supported, as a small visual footer. Disable with `SCIVIZ_ATTRIBUTION=0`
+  for camera-ready figures.
+
+## Licensing at a glance
+
+Everything in this repo is open source or builds on open source — see
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the full list of
+vendored code and library licenses. Two integrations drive **commercial
+software you must license yourself**:
+
+- **COMSOL Multiphysics** — required for `comsol_mcp` solver tools.
+  Visualizing exported fields with `comsol_viz_mcp` works without it.
+- **PixInsight and the RC Astro plugins** (BlurXTerminator,
+  NoiseXTerminator, StarXTerminator) — required for `pixinsight_mcp`. The
+  bridge executes inside a running licensed PixInsight instance, and its
+  sharpening/denoise/star-removal workflows assume the RC Astro plugins
+  are installed. Details in
+  [`pixinsight_mcp/README_SCIVIZ.md`](pixinsight_mcp/README_SCIVIZ.md).
+
+## Quick start
+
+```bash
+git clone <this repo> && cd sci-viz-mcp
+
+./install.sh              # python venv + deps + node builds
+# or ./install.sh --minimal   (python-only: skip ray_optics / pixinsight)
+```
+
+Then generate the MCP registration for your machine (absolute paths filled
+in automatically) and restart your MCP client:
+
+```bash
+.venv/bin/python scripts/generate_mcp_config.py            # print JSON to paste
+.venv/bin/python scripts/generate_mcp_config.py --write    # or merge into ~/.cursor/mcp.json
+```
+
+Prerequisites: Python ≥ 3.10, Node.js ≥ 18 (for the ray-optics and
+PixInsight servers), and optionally COMSOL / PixInsight / Blender for the
+servers that drive them (see the licensing section above).
+
+Regenerate the repo hero graphic with GPT Image when `OPENAI_API_KEY` is available:
 
 ```bash
 python3 scripts/generate_repo_graphic_gpt_image.py \
@@ -18,14 +85,15 @@ python3 scripts/generate_repo_graphic_gpt_image.py \
 ```
 Cursor IDE (any chat, any repo)
   │
+  ├── comsol_mcp ───── mph (Java API) ──── open/solve/export COMSOL models
+  ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
+  ├── ray_optics_mcp ─ ray-optics engine ─ 2D optical design, telescope
+  │                    (Node.js, vendored)   presets, ray-traced spot metrics
   ├── crystal_mcp ──── ASE + pymatgen ──── lattice diagrams, TikZ, defects
   ├── ovito_mcp ────── OVITO Python API ── atomistic rendering (Tachyon)
   ├── blender ──────── official Blender ── stdio MCP ⇄ TCP :9876 ⇄ Blender
   │                    Foundation MCP        add-on (sciviz_blender_addon
   │                    server                registers bpy.ops.sciviz.*)
-  ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
-  ├── ray_optics_mcp ─ ray-optics engine ─ 2D optical design, telescope
-  │                    (Node.js, vendored)   presets, ray-traced spot metrics
   ├── pixinsight_mcp ─ PixInsight PJSR ─── astrophotography processing via
   │                    file IPC bridge       AI-driven MCP tools
   │
@@ -37,113 +105,13 @@ All servers are registered globally in `~/.cursor/mcp.json` and available in eve
 
 ## Servers
 
-### crystal_mcp (9 tools)
-Replaces VESTA with a programmatic, reproducible workflow.
+### comsol_mcp (15 tools)
+Headless COMSOL execution via `mph` (Java API). Ported from the
+Flash-Physics-Twin project's comprehensive execution server and
+generalized: the runs directory is configurable (`COMSOL_MCP_RUNS_DIR`),
+and the coupled EM + thermal + Flash physics exports are exposed as tools.
 
-| Tool | Description |
-|------|-------------|
-| `crystal_import_structure` | Load CIF, POSCAR, XYZ |
-| `crystal_build_supercell` | Build NxMxL supercell |
-| `crystal_create_defect` | Vacancy, substitution, interstitial |
-| `crystal_get_symmetry` | Space group, Wyckoff positions |
-| `crystal_render_lattice` | 2D projection → PDF/PNG/SVG |
-| `crystal_render_unit_cell` | Annotated unit cell with bond lengths |
-| `crystal_compare_structures` | Side-by-side structural comparison |
-| `crystal_export_tikz` | LaTeX-ready TikZ code |
-| `crystal_list_structures` | Show loaded structures |
-
-### ovito_mcp (9 tools)
-Headless atomistic visualization via OVITO Python API.
-
-| Tool | Description |
-|------|-------------|
-| `ovito_import_data` | Load CIF, LAMMPS, POSCAR, XYZ, GSD |
-| `ovito_add_modifier` | Coordination, Voronoi, CNA, color coding, etc. |
-| `ovito_set_visual_style` | Particle colors, radii, cell visibility |
-| `ovito_set_camera` | Ortho/perspective, direction, FOV |
-| `ovito_render_image` | Tachyon ray-traced PNG/TIFF |
-| `ovito_render_animation` | Frame sequence for simulations |
-| `ovito_compute_property` | Extract RDF, coordination, per-atom data |
-| `ovito_pipeline_status` | Inspect pipeline state |
-| `ovito_list_pipelines` | List active pipelines |
-
-### blender (official Blender Foundation MCP server + SciViz add-on)
-Photorealistic 3D rendering via Blender + Cycles. Refactored in May 2026 to
-use the [official Blender Foundation MCP server](https://www.blender.org/lab/mcp-server/)
-released by the Blender devs in partnership with Anthropic, instead of a
-custom socket protocol.
-
-```
-Cursor ──MCP/stdio──▶ blender-mcp ──TCP :9876──▶ Blender (5.1+)
-                                                  ├── Foundation MCP add-on (transport)
-                                                  └── SciViz add-on (sciviz_blender_addon/)
-                                                        registers bpy.ops.sciviz.*
-```
-
-Science vocabulary lives inside Blender as proper operators, so it persists
-across sessions, shows up as buttons in the SciViz N-panel, and is callable
-from any MCP client (Cursor, Claude Desktop, Claude Code, ...) by writing
-one-line Python through the Foundation server's execute-Python surface.
-
-**SciViz operators (registered by `sciviz_blender_addon/`):**
-
-| Operator | Description |
-|----------|-------------|
-| `bpy.ops.sciviz.import_crystal(filepath=...)` | CIF / POSCAR / XYZ → ball-and-stick with CPK materials. Uses ASE if installed in Blender's Python, falls back to pymatgen. |
-| `bpy.ops.sciviz.apply_preset(preset=...)` | `WHITE_CLEAN` / `SOFT_SHADOW` / `PERSPECTIVE_DEPTH` / `DARK_PRESENTATION` |
-| `bpy.ops.sciviz.render_hq(filepath=..., width=..., height=..., samples=...)` | Cycles render with 16-bit PNG output and live-preview ping |
-| `bpy.ops.sciviz.add_annotation_3d(text=..., location_x=..., ...)` | 3D text label, optionally parented to the Crystal collection |
-
-**Setup (one-time):**
-
-```bash
-# 1. Install the Foundation MCP add-on inside Blender 5.1+.
-#    Open https://www.blender.org/lab/mcp-server/ and drag the install
-#    link into Blender twice: first adds the lab.blender.org repository,
-#    second installs the add-on. Enable it in Edit > Preferences > Add-ons.
-
-# 2. Install the Foundation MCP *server* (the stdio bridge between
-#    Cursor and Blender). Clones the source repo and pip-installs into
-#    ./blender_mcp_foundation/.venv .
-cd /Users/ricfulop/voltivity/sci-viz-mcp
-./install_blender_foundation_mcp.sh
-
-# 3. Install the SciViz add-on into Blender's user extensions
-./install_sciviz_addon.sh                 # symlink (live editing)
-# or  ./install_sciviz_addon.sh --copy     # one-shot copy
-
-# 4. ASE / numpy in Blender's bundled Python (one-time)
-/Applications/Blender.app/Contents/Resources/5.1/python/bin/python3.* \
-    -m pip install ase numpy
-
-# 5. Drop the snippet from step 2 into ~/.cursor/mcp.json under the
-#    `blender` key, then reload Cursor's MCP servers.
-
-# 6. In Blender, the BlenderMCP sidebar tab (View3D > N) shows a
-#    "Connect" / status indicator. Once connected, calls from Cursor
-#    flow through the Foundation server into Blender's bpy.
-```
-
-The Cursor → Blender path is now:
-
-```
-Cursor ─stdio─▶ blender_mcp_foundation/.venv/bin/blender-mcp
-                       │
-                  TCP :9876
-                       ▼
-               Blender 5.1+ with
-                  ├── Foundation MCP add-on (lab.blender.org repo)
-                  └── SciViz add-on (sciviz_blender_addon/)
-                        registers bpy.ops.sciviz.*
-```
-
-Both server and add-on come from the Blender Foundation, so the protocol
-matches end-to-end. The community `uvx blender-mcp` (ahujasid) used to
-work in earlier setups but its command vocabulary disagrees with the
-Foundation add-on's, so don't mix them.
-
-### comsol_mcp (11 tools, Flash-Physics-Twin)
-Headless COMSOL control via `mph` (Java API). Registered in `~/.cursor/mcp.json` with cwd `Flash-Physics-Twin`.
+**Full manual:** [`comsol_mcp/README_SCIVIZ.md`](comsol_mcp/README_SCIVIZ.md)
 
 | Tool | Description |
 |------|-------------|
@@ -152,13 +120,18 @@ Headless COMSOL control via `mph` (Java API). Registered in `~/.cursor/mcp.json`
 | `comsol_apply_inputs` | Apply YAML inputs from run directory |
 | `comsol_build_geometry` / `comsol_mesh` | Geometry and mesh |
 | `comsol_run_pipeline` / `comsol_run_study` | Execute studies |
-| `comsol_export_fields` / `comsol_export_kpis` | HDF5 + JSON outputs |
+| `comsol_export_fields` / `comsol_export_kpis` | HDF5 + JSON outputs (incl. Flash ΔB/χ) |
+| `comsol_export_em_coil_fields` / `comsol_export_em_coil_kpis` | AC/DC coil EM surrogate |
+| `comsol_export_coupled_fields` / `comsol_export_coupled_kpis` | Coupled EM + thermal + Flash |
 | `comsol_render_png` / `comsol_close_model` | Plot export and cleanup |
 
-**Common failure:** `templates/pfr_coil_acdc_axisym.mph` in git is a **text spec placeholder**, not a binary model. Save a real `.mph` from COMSOL Desktop and pass `model_path`, or set `COMSOL_MCP_DEFAULT_TEMPLATE` in `mcp.json` to that file.
+**Common failure:** a `.mph` that is a text placeholder, not a binary
+COMSOL model. Save a real `.mph` from COMSOL Desktop and pass
+`model_path`, or set `COMSOL_MCP_DEFAULT_TEMPLATE` in `mcp.json`.
 
 ### comsol_viz_mcp (7 tools)
-Publication-quality visualization of COMSOL field exports.
+Publication-quality visualization of COMSOL field exports. Works without
+a COMSOL license — it only reads exported HDF5/CSV files.
 
 | Tool | Description |
 |------|-------------|
@@ -194,12 +167,22 @@ AI-driven 2D geometric optics on the vendored [ray-optics](https://github.com/ri
 | Catadioptrics (auto-tuned) | `schmidt_camera`, `schmidt_cassegrain`, `maksutov_cassegrain` (Gregory spot) |
 | Refractors | `keplerian_refractor`, `galilean_refractor`, `singlet_refractor` (chromatic demo), `achromat_doublet` (BK7+F2), `petzval_refractor`, `apo_triplet` (FPL53 ED, bendings auto-tuned), `flatfield_petzval` (quadruplet/quintuplet, tuned for flat-plane spot on- and off-axis) |
 
+**Gallery** (rendered by `scripts/generate_telescope_gallery.py` straight from the presets):
+
+| | |
+|---|---|
+| ![Newtonian](assets/telescopes/newtonian.png) | ![Ritchey-Chrétien](assets/telescopes/ritchey_chretien.png) |
+| Newtonian D=200 f/4 | Ritchey-Chrétien D=240 f/9.5 |
+| ![Schmidt-Cassegrain](assets/telescopes/schmidt_cassegrain.png) | ![Maksutov-Cassegrain](assets/telescopes/maksutov_cassegrain.png) |
+| Schmidt-Cassegrain D=200 (auto-tuned corrector) | Maksutov-Cassegrain D=150 f/17 (auto-tuned meniscus) |
+| ![Apochromatic triplet](assets/telescopes/apo_triplet.png) | ![Flatfield Petzval](assets/telescopes/flatfield_petzval.png) |
+| Apo triplet FPL53/F2/FPL53 D=140 f/5, chromatic trace | Flat-field Petzval quintuplet D=110 f/3.1, chromatic trace |
+
 Highlights:
 - **Engine-in-the-loop auto-tuning** — Schmidt corrector strengths, Maksutov meniscus radii, apo-triplet element bendings, and Petzval field flatteners are optimized by minimizing the ray-traced RMS spot (golden-section / coordinate descent), not by closed-form guesses.
 - **Physical chromatic model** — two-term Cauchy dispersion with a BK7/F2/FPL53 glass table; `chromatic: true` traces RGB wavelengths.
 - **Off-axis analysis** — `field_angle_deg` tilts the incoming beam to expose coma and field curvature (e.g. classical Cassegrain vs Ritchey-Chrétien).
 - **Quantitative spot metrics** — full-map and 90%-energy clipped RMS from detector irradiance maps.
-- **Built-in attribution** — generated design/renders include `Designed with Sci-Viz (c) 2026 Ric Fulop, MIT Center for Bits and Atoms` in output metadata and, where supported, as a small visual footer. Set `SCIVIZ_ATTRIBUTION=0` to suppress the footer for camera-ready figures.
 
 ```bash
 # Smoke tests
@@ -207,6 +190,97 @@ cd ray_optics_mcp
 python3 validate_designs.py   # traces all 18 presets, power + RMS report
 python3 test_e2e.py           # full MCP round-trip incl. renders
 ```
+
+### crystal_mcp (9 tools)
+Replaces VESTA with a programmatic, reproducible workflow.
+
+| Tool | Description |
+|------|-------------|
+| `crystal_import_structure` | Load CIF, POSCAR, XYZ |
+| `crystal_build_supercell` | Build NxMxL supercell |
+| `crystal_create_defect` | Vacancy, substitution, interstitial |
+| `crystal_get_symmetry` | Space group, Wyckoff positions |
+| `crystal_render_lattice` | 2D projection → PDF/PNG/SVG |
+| `crystal_render_unit_cell` | Annotated unit cell with bond lengths |
+| `crystal_compare_structures` | Side-by-side structural comparison |
+| `crystal_export_tikz` | LaTeX-ready TikZ code |
+| `crystal_list_structures` | Show loaded structures |
+
+### ovito_mcp (9 tools)
+Headless atomistic visualization via OVITO Python API.
+
+| Tool | Description |
+|------|-------------|
+| `ovito_import_data` | Load CIF, LAMMPS, POSCAR, XYZ, GSD |
+| `ovito_add_modifier` | Coordination, Voronoi, CNA, color coding, etc. |
+| `ovito_set_visual_style` | Particle colors, radii, cell visibility |
+| `ovito_set_camera` | Ortho/perspective, direction, FOV |
+| `ovito_render_image` | Tachyon ray-traced PNG/TIFF |
+| `ovito_render_animation` | Frame sequence for simulations |
+| `ovito_compute_property` | Extract RDF, coordination, per-atom data |
+| `ovito_pipeline_status` | Inspect pipeline state |
+| `ovito_list_pipelines` | List active pipelines |
+
+### blender (official Blender Foundation MCP server + SciViz add-on)
+Photorealistic 3D rendering via Blender + Cycles. Uses the
+[official Blender Foundation MCP server](https://www.blender.org/lab/mcp-server/)
+released by the Blender devs in partnership with Anthropic.
+
+```
+Cursor ──MCP/stdio──▶ blender-mcp ──TCP :9876──▶ Blender (5.1+)
+                                                  ├── Foundation MCP add-on (transport)
+                                                  └── SciViz add-on (sciviz_blender_addon/)
+                                                        registers bpy.ops.sciviz.*
+```
+
+Science vocabulary lives inside Blender as proper operators, so it persists
+across sessions, shows up as buttons in the SciViz N-panel, and is callable
+from any MCP client by writing one-line Python through the Foundation
+server's execute-Python surface.
+
+**SciViz operators (registered by `sciviz_blender_addon/`):**
+
+| Operator | Description |
+|----------|-------------|
+| `bpy.ops.sciviz.import_crystal(filepath=...)` | CIF / POSCAR / XYZ → ball-and-stick with CPK materials. Uses ASE if installed in Blender's Python, falls back to pymatgen. |
+| `bpy.ops.sciviz.apply_preset(preset=...)` | `WHITE_CLEAN` / `SOFT_SHADOW` / `PERSPECTIVE_DEPTH` / `DARK_PRESENTATION` |
+| `bpy.ops.sciviz.render_hq(filepath=..., width=..., height=..., samples=...)` | Cycles render with 16-bit PNG output and live-preview ping |
+| `bpy.ops.sciviz.add_annotation_3d(text=..., location_x=..., ...)` | 3D text label, optionally parented to the Crystal collection |
+
+**Setup (one-time):**
+
+```bash
+# 1. Install the Foundation MCP add-on inside Blender 5.1+.
+#    Open https://www.blender.org/lab/mcp-server/ and drag the install
+#    link into Blender twice: first adds the lab.blender.org repository,
+#    second installs the add-on. Enable it in Edit > Preferences > Add-ons.
+
+# 2. Install the Foundation MCP *server* (the stdio bridge between
+#    Cursor and Blender). Clones the source repo and pip-installs into
+#    ./blender_mcp_foundation/.venv .
+cd sci-viz-mcp
+./install_blender_foundation_mcp.sh
+
+# 3. Install the SciViz add-on into Blender's user extensions
+./install_sciviz_addon.sh                 # symlink (live editing)
+# or  ./install_sciviz_addon.sh --copy     # one-shot copy
+
+# 4. ASE / numpy in Blender's bundled Python (one-time)
+/Applications/Blender.app/Contents/Resources/5.1/python/bin/python3.* \
+    -m pip install ase numpy
+
+# 5. Drop the snippet from step 2 into ~/.cursor/mcp.json under the
+#    `blender` key, then reload Cursor's MCP servers.
+
+# 6. In Blender, the BlenderMCP sidebar tab (View3D > N) shows a
+#    "Connect" / status indicator. Once connected, calls from Cursor
+#    flow through the Foundation server into Blender's bpy.
+```
+
+Both server and add-on come from the Blender Foundation, so the protocol
+matches end-to-end. The community `uvx blender-mcp` (ahujasid) used to
+work in earlier setups but its command vocabulary disagrees with the
+Foundation add-on's, so don't mix them.
 
 ### pixinsight_mcp (18 tools, vendored)
 AI-driven PixInsight control for astrophotography processing, vendored from
@@ -216,6 +290,12 @@ file-based IPC: the MCP server writes JSON commands under
 `~/.pixinsight-mcp/bridge/commands/`, while
 `pixinsight_mcp/pjsr/pixinsight-mcp-watcher.js` runs inside PixInsight and
 writes results back.
+
+> **Licensing:** requires a paid [PixInsight](https://pixinsight.com/)
+> license, and the deconvolution/denoise/star-removal workflows assume
+> the commercial [RC Astro](https://www.rc-astro.com/) plugins
+> (BlurXTerminator, NoiseXTerminator, StarXTerminator) are installed in
+> PixInsight. Neither is bundled here.
 
 **Full setup/manual:** [`pixinsight_mcp/README_SCIVIZ.md`](pixinsight_mcp/README_SCIVIZ.md).
 
@@ -249,7 +329,7 @@ server starts automatically and opens your browser. No manual setup needed.
 **Manual launch:** Or start it yourself:
 
 ```bash
-cd /Users/ricfulop/voltivity/sci-viz-mcp
+cd sci-viz-mcp
 source .venv/bin/activate
 python -m preview.server
 ```
@@ -262,7 +342,6 @@ Features:
 - Metadata panel showing tool name, server, parameters, and file path
 - Keyboard navigation: `←` / `→` to browse history, `Space` to jump to latest
 - Auto-reconnecting WebSocket — survives network hiccups
-- Dark theme optimized for extended use
 
 ## Figure Styles
 
@@ -289,8 +368,8 @@ Science figure guide: `science-figure-style/SKILL.md`. Example: `python science-
 ## Full Pipeline (COMSOL → figure)
 
 ```
-comsol_mcp                         sci-viz-mcp
-──────────                         ───────────
+comsol_mcp                         comsol_viz_mcp
+──────────                         ──────────────
 comsol_open_or_create_model  ──┐
 comsol_apply_inputs            │
 comsol_run_study               │
@@ -305,14 +384,33 @@ comsol_export_kpis ────────────┘    comsol_viz_render_
 |---------|----------------|-----|
 | MCP server red / JSON parse errors on `comsol_viz_mcp` | Matplotlib wrote warnings to stdout | Reload MCP after update; `MPLCONFIGDIR` is set in `mcp.json` |
 | `model file is damaged or not valid` | Placeholder `.mph` in repo | Use `comsol_health` then pass `model_path` to a real binary `.mph` |
-| `mph not installed` | Wrong Python venv | Use `Flash-Physics-Twin/.venv/bin/python` from `mcp.json` |
+| `mph not installed` | Wrong Python venv | `pip install mph h5py pyyaml` into `.venv` referenced by `mcp.json` |
 | Viz works, solve does not | COMSOL not licensed / not running | Call `comsol_health` with `start_client: true` |
 | Tools filtered / naming warnings in Cursor | Dotted names (`comsol.mesh`) | Reload MCP — tools now use underscores (`comsol_mesh`) |
+| PixInsight tools time out | Watcher script not running in PixInsight | Script → Run Script… → `pjsr/pixinsight-mcp-watcher.js` |
 
 ```bash
 # Quick smoke tests
-cd /Users/ricfulop/voltivity/sci-viz-mcp && .venv/bin/python tests/test_comsol_viz.py
+.venv/bin/python tests/test_comsol_viz.py
 ```
+
+## License & Contributing
+
+The code in this repo is [MIT-licensed](LICENSE). Vendored components keep
+their own licenses (see below). Contributions welcome — see
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the repo layout, conventions, and
+test commands.
+
+## Attribution & Third-Party Software
+
+- Outputs are stamped `Designed with Sci-Viz (c) 2026 Ric Fulop, MIT
+  Center for Bits and Atoms` (metadata always; visual footer where the
+  format supports it). Set `SCIVIZ_ATTRIBUTION=0` to suppress the footer.
+- Everything this repo vendors or builds on is credited in
+  [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — ray-optics
+  (Apache-2.0), pixinsight-mcp (MIT), ASE, pymatgen, OVITO, Blender,
+  matplotlib, mph, and the commercial applications (COMSOL, PixInsight,
+  RC Astro) that you must license yourself.
 
 ## Benchmark: Highly-Cited Crystal Structure Figures
 
@@ -344,17 +442,6 @@ Design conventions extracted from the most-cited papers using lattice structure 
 | Color-coded Wyckoff sites | Different colors per crystallographic site | Planned |
 | 3D perspective with depth | Slight perspective or isometric view showing 3D character | Planned |
 | Derivation box | Math box showing key calculation leading to prediction | Yes |
-
-## Setup
-
-```bash
-cd /Users/ricfulop/voltivity/sci-viz-mcp
-python3 -m venv .venv
-source .venv/bin/activate
-pip install ase pymatgen matplotlib numpy spglib ovito phonopy h5py aiohttp
-```
-
-Servers are registered in `~/.cursor/mcp.json` — restart Cursor to activate.
 
 ## Sample Structures
 
