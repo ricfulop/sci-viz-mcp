@@ -8,7 +8,7 @@ Composition:
 - Dark, premium engineering-lab background with a subtle IDE/code grid.
 - Center: glowing "Sci-Viz MCP" wordmark, clean modern sans-serif, crisp and
   readable.
-- Surrounding the wordmark: five connected tool panels/nodes forming an
+- Surrounding the wordmark: six connected tool panels/nodes forming an
   engineering design constellation:
   1. COMSOL-style multiphysics field map: thermal gradient + electromagnetic
      field lines + structural mesh.
@@ -19,6 +19,9 @@ Composition:
   4. Atomistic rendering: dense particles with coordination colors / OVITO
      scientific render feel.
   5. Blender 3D rendering: camera, lights, and polished 3D object silhouette.
+  6. PixInsight astrophotography processing: deep-sky nebula or galaxy,
+     histogram stretch, star field, narrowband color palette, and processing
+     curve/levels motif.
 - Include small badges for "APS" and "Nature" figure styles as clean journal
   style tags.
 - Add a tiny footer text: "Designed with Sci-Viz (c) 2026 Ric Fulop, MIT Center

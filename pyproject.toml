@@ -1,7 +1,7 @@
 [project]
 name = "sci-viz-mcp"
 version = "0.5.1"
-description = "MCP servers for scientific visualization and design: COMSOL field maps, ray-optics telescope design, crystal structures, atomistic rendering, Blender, and journal figure styles"
+description = "MCP servers for scientific visualization and design: COMSOL field maps, ray-optics telescope design, crystal structures, atomistic rendering, Blender, PixInsight, and journal figure styles"
 requires-python = ">=3.10"
 dependencies = [
     "ase",

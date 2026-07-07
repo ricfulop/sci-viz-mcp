@@ -2,12 +2,15 @@
 
 ![Sci-Viz MCP: AI-controlled headless engineering design tools](assets/sci-viz-mcp-hero-white.png)
 
-MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, and 2D ray-optics / telescope design — with APS, Nature, and Science journal figure styles.
+MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, 2D ray-optics / telescope design, and PixInsight astrophotography processing — with APS, Nature, and Science journal figure styles.
 
 Regenerate the repo hero with GPT Image when `OPENAI_API_KEY` is available:
 
 ```bash
-python3 scripts/generate_repo_graphic_gpt_image.py
+python3 scripts/generate_repo_graphic_gpt_image.py \
+  --model gpt-image-2 \
+  --prompt assets/sci-viz-mcp-hero-white.prompt.md \
+  --output assets/sci-viz-mcp-hero-white.png
 ```
 
 ## Architecture
@@ -23,6 +26,8 @@ Cursor IDE (any chat, any repo)
   ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
   ├── ray_optics_mcp ─ ray-optics engine ─ 2D optical design, telescope
   │                    (Node.js, vendored)   presets, ray-traced spot metrics
+  ├── pixinsight_mcp ─ PixInsight PJSR ─── astrophotography processing via
+  │                    file IPC bridge       AI-driven MCP tools
   │
   ├── styles.py ────── APS / Nature / Science rcParams, Okabe-Ito, column widths
   └── science-figure-style/ ── AAAS figure spec (SKILL.md) + example_figure.py
@@ -201,6 +206,32 @@ Highlights:
 cd ray_optics_mcp
 python3 validate_designs.py   # traces all 18 presets, power + RMS report
 python3 test_e2e.py           # full MCP round-trip incl. renders
+```
+
+### pixinsight_mcp (18 tools, vendored)
+AI-driven PixInsight control for astrophotography processing, vendored from
+[`aescaffre/pixinsight-mcp`](https://github.com/aescaffre/pixinsight-mcp)
+(MIT license). PixInsight has no HTTP/socket API, so this bridge uses
+file-based IPC: the MCP server writes JSON commands under
+`~/.pixinsight-mcp/bridge/commands/`, while
+`pixinsight_mcp/pjsr/pixinsight-mcp-watcher.js` runs inside PixInsight and
+writes results back.
+
+**Full setup/manual:** [`pixinsight_mcp/README_SCIVIZ.md`](pixinsight_mcp/README_SCIVIZ.md).
+
+| Tool group | Tools |
+|------------|-------|
+| Image/session management | `list_open_images`, `open_image`, `save_image`, `close_image`, `get_image_statistics` |
+| Core processing | `run_pixelmath`, `remove_gradient`, `color_calibrate`, `remove_green_cast`, `stretch_image`, `apply_curves`, `denoise`, `sharpen`, `deconvolve` |
+| Composition | `combine_lrgb`, `blend_narrowband` |
+| Knowledge | `search_processing_recommendations` |
+
+```bash
+cd pixinsight_mcp
+npm install
+npm run build
+npm run setup-bridge
+# In PixInsight: Script -> Run Script... -> pjsr/pixinsight-mcp-watcher.js
 ```
 
 ## Live Preview Dashboard

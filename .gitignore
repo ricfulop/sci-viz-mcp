@@ -3,6 +3,8 @@
 .matplotlib_cache/
 output/
 ray_optics_mcp/vendor/node_modules/
+pixinsight_mcp/node_modules/
+pixinsight_mcp/build/
 __pycache__/
 *.pyc
 .DS_Store
