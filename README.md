@@ -4,13 +4,6 @@
 
 MCP servers for scientific visualization and simulation — crystal structures, atomistic rendering, 3D rendering, COMSOL field visualization, 2D ray-optics / telescope design, and PixInsight astrophotography processing — with APS, Nature, and Science journal figure styles.
 
-Regenerate the repo hero with GPT Image when `OPENAI_API_KEY` is available:
-
-```bash
-python3 scripts/generate_repo_graphic_gpt_image.py \
-  --model gpt-image-2 \
-  --prompt assets/sci-viz-mcp-hero-white.prompt.md \
-  --output assets/sci-viz-mcp-hero-white.png
 ```
 
 ## Architecture
