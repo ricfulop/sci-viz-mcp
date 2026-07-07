@@ -324,32 +324,3 @@ Design conventions extracted from the most-cited papers using lattice structure 
 | 1,018 | Adachi & Imanaka, [Binary Rare Earth Oxides](https://doi.org/10.1021/cr940055h) (1998) | Chem. Rev. | Fluorite vacancy superstructure + diffraction evidence |
 | 882 | Li et al., [Na₀.₅Bi₀.₅TiO₃](https://doi.org/10.1038/nmat3782) (2013) | Nature Mater. | Side-by-side parent/child phases, vacancy channels, + electron diffraction |
 | 647 | Foster et al., [Vacancies in hafnia](https://doi.org/10.1103/physrevb.65.174117) (2002) | Phys. Rev. B | Defect site ball-and-stick with charge density overlay |
-
-### Key conventions from highly-cited papers
-
-| Convention | Description | Implemented? |
-|------------|-------------|:---:|
-| Polyhedral + ball hybrid | Show coordination polyhedra AND individual atoms | Planned |
-| Phase transformation arrows | Side-by-side parent → child with bold arrow | Yes |
-| Vacancy channels colored | Highlight vacancy-rich planes in a distinct color | Yes |
-| Diffraction evidence inset | Small SAED/XRD pattern proving structural claim | Yes |
-| Bond-length annotations | Explicit angstrom values on key bonds | Yes |
-| Color-coded Wyckoff sites | Different colors per crystallographic site | Planned |
-| 3D perspective with depth | Slight perspective or isometric view showing 3D character | Planned |
-| Derivation box | Math box showing key calculation leading to prediction | Yes |
-
-## Setup
-
-```bash
-cd /Users/ricfulop/voltivity/sci-viz-mcp
-python3 -m venv .venv
-source .venv/bin/activate
-pip install ase pymatgen matplotlib numpy spglib ovito phonopy h5py aiohttp
-```
-
-Servers are registered in `~/.cursor/mcp.json` — restart Cursor to activate.
-
-## Sample Structures
-
-- `tests/sample_structures/fluorite_ZrO2.cif` — Fm-3m (#225), a = 5.145 Å
-- `tests/sample_structures/rocksalt_ZrO.cif` — Fm-3m (#225), a = 4.620 Å
