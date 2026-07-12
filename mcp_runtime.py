@@ -25,7 +25,15 @@ def configure_stdio_logging(level: int = logging.INFO) -> None:
         )
     else:
         for handler in root.handlers:
-            handler.setStream(sys.stderr)
+            # Embedding hosts such as pytest own capture streams whose lifetime
+            # is shorter than the process. Rebinding those handlers makes them
+            # point at closed files after a capture phase. Only redirect a
+            # conventional handler that is explicitly writing to stdout.
+            if (
+                hasattr(handler, "setStream")
+                and getattr(handler, "stream", None) in {sys.stdout, sys.__stdout__}
+            ):
+                handler.setStream(sys.stderr)
 
 
 def configure_matplotlib_for_mcp(cache_dir: Path | None = None) -> None:

@@ -67,6 +67,64 @@ def python_servers() -> dict:
             "cwd": cwd,
             "transport": "stdio",
         },
+        "physical_optics_mcp": {
+            "command": py,
+            "args": [
+                str(
+                    ROOT
+                    / "physical_optics_mcp"
+                    / "physical_optics_mcp_server.py"
+                )
+            ],
+            "cwd": cwd,
+            "env": {
+                "MPLCONFIGDIR": str(ROOT / ".matplotlib_cache"),
+                "PHYSICAL_OPTICS_OUTPUT_DIR": str(
+                    ROOT / "output" / "physical_optics"
+                ),
+            },
+            "transport": "stdio",
+        },
+        "optical_design_mcp": {
+            "command": py,
+            "args": [
+                str(
+                    ROOT
+                    / "optical_design_mcp"
+                    / "optical_design_mcp_server.py"
+                )
+            ],
+            "cwd": cwd,
+            "env": {
+                "MPLCONFIGDIR": str(ROOT / ".matplotlib_cache"),
+                "OPTICAL_DESIGN_OUTPUT_DIR": str(
+                    ROOT / "output" / "optical_design"
+                ),
+            },
+            "transport": "stdio",
+        },
+        "siril_mcp": {
+            "command": py,
+            "args": [str(ROOT / "siril_mcp" / "siril_mcp_server.py")],
+            "cwd": cwd,
+            "transport": "stdio",
+        },
+        "picogk_mcp": {
+            "command": py,
+            "args": [str(ROOT / "picogk_mcp" / "picogk_mcp_server.py")],
+            "cwd": cwd,
+            "env": {
+                "PICOGK_MCP_OUTPUT_DIR": str(ROOT / "output" / "picogk"),
+                "DOTNET_CLI_HOME": str(ROOT / "output" / "dotnet-home"),
+                "NUGET_PACKAGES": str(ROOT / ".nuget" / "packages"),
+                **(
+                    {"PICOGK_MCP_DOTNET": str(ROOT / ".dotnet" / "dotnet")}
+                    if (ROOT / ".dotnet" / "dotnet").exists()
+                    else {}
+                ),
+            },
+            "transport": "stdio",
+        },
     }
     return servers
 
@@ -85,6 +143,29 @@ def node_servers() -> dict:
     return servers
 
 
+def external_servers() -> dict:
+    """Servers launched via an external CLI (uvx, etc.), not a repo script."""
+    uvx = shutil.which("uvx") or "uvx"
+    addon = ROOT / "freecad_mcp" / "addon"
+    return {
+        "freecad": {
+            "command": uvx,
+            "args": ["freecad-mcp"],
+            "transport": "stdio",
+            "_comment": (
+                "neka-nat/freecad-mcp — FreeCAD must be running with the "
+                "FreeCADMCP RPC server started (see freecad_mcp/README_SCIVIZ.md)."
+            ),
+            # Presence gate: vendored FreeCAD workbench must exist.
+            "_entry": str(addon / "InitGui.py"),
+            "_note": (
+                "Run ./install_freecad_mcp.sh and start FreeCAD → MCP Addon → "
+                "Start RPC Server before using."
+            ),
+        },
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--write", action="store_true",
@@ -93,17 +174,18 @@ def main():
                     help="Comma-separated subset (default: all)")
     args = ap.parse_args()
 
-    servers = {**python_servers(), **node_servers()}
+    servers = {**python_servers(), **node_servers(), **external_servers()}
 
-    # Drop servers whose entry point does not exist (e.g. pixinsight not built)
+    # Drop servers whose entry point / vendored prerequisite is missing.
     ready, skipped = {}, []
     for name, cfg in servers.items():
-        entry = Path(cfg["args"][0])
-        if entry.exists():
-            cfg.pop("_note", None)
-            ready[name] = cfg
-        else:
-            skipped.append((name, cfg.get("_note", f"missing {entry}")))
+        gate = cfg.get("_entry") or cfg["args"][0]
+        if not Path(gate).exists():
+            skipped.append((name, cfg.get("_note", f"missing {gate}")))
+            continue
+        cfg.pop("_note", None)
+        cfg.pop("_entry", None)
+        ready[name] = cfg
 
     if args.servers:
         wanted = {s.strip() for s in args.servers.split(",")}

@@ -1,0 +1,5 @@
+# Astronomy and adaptive-optics stack.
+aotools==1.0.8
+astropy==8.0.1
+hcipy==0.7.0
+poppy==1.1.2

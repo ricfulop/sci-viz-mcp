@@ -8,3 +8,7 @@ aiohttp
 h5py
 mph
 pyyaml
+
+# Python physical-optics engines, pinned to verified upstream revisions.
+prysm @ git+https://github.com/brandondube/prysm.git@43fc1533f3081def53a547b4f727db015740e2cd
+poke @ git+https://github.com/Jashcraf/poke.git@2e4a29ecce321315724ecf88be63ad7a4b4e5c07

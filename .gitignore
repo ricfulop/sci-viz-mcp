@@ -1,7 +1,12 @@
 .venv/
+.dotnet/
+.nuget/
 .env
 .matplotlib_cache/
+.pycache/
 output/
+**/bin/
+**/obj/
 ray_optics_mcp/vendor/node_modules/
 pixinsight_mcp/node_modules/
 pixinsight_mcp/build/

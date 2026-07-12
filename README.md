@@ -5,28 +5,47 @@
 **AI-controlled headless engineering and science tools.** This repo is a
 collection of [MCP](https://modelcontextprotocol.io/) servers that let an AI
 assistant (Cursor, Claude Desktop, Claude Code, ...) drive real
-engineering software — COMSOL simulation, 2D ray-optics and telescope
-design, crystal structure visualization, atomistic rendering, Blender 3D
-rendering, and PixInsight astrophotography — and produce
+engineering software — PicoGK computational geometry, COMSOL simulation,
+2D ray-optics and telescope design, physical diffraction, sequential lens
+design, crystal structure visualization,
+atomistic rendering, Blender 3D rendering, FreeCAD manufacturing CAD,
+and PixInsight / Siril
+astrophotography — and produce
 publication-quality figures in APS, Nature, and Science journal styles.
 
 ## What's in the box
 
 | Server | What it does | Engine underneath | Needs a paid license? |
 |--------|--------------|-------------------|:---:|
+| `picogk_mcp` | Runs trusted raw C# computational-geometry models with reproducible jobs/artifacts | PicoGK 2.2 + pinned LEAP 71 stack (.NET 9/OpenVDB) | No |
 | `comsol_mcp` | Runs COMSOL models headlessly: open, parameterize, mesh, solve, export fields/KPIs | COMSOL via [mph](https://mph.readthedocs.io/) Java bridge | Yes — COMSOL |
 | `comsol_viz_mcp` | Turns COMSOL field exports into APS/Nature-styled figures | matplotlib | No |
 | `ray_optics_mcp` | 2D geometric optics + 18 parametric telescope designs with auto-tuned optics | vendored [ray-optics](https://github.com/ricktu288/ray-optics) (Node.js) | No |
+| `physical_optics_mcp` | Scalar propagation, PSF/MTF/encircled energy, Gaussian beamlets, Jones polarization | pinned Prysm + Poke | No |
+| `optical_design_mcp` | Sequential prescriptions, catalogs, ray/spot/MTF, optimization, seeded tolerancing | optional Optiland 0.6.0 | No |
 | `crystal_mcp` | Crystal structures, defects, symmetry, lattice figures, TikZ export | ASE + pymatgen | No |
 | `ovito_mcp` | Atomistic rendering and analysis (ray-traced) | OVITO Python API | No |
 | `blender` | Photorealistic 3D rendering | Blender + official Foundation MCP server | No |
+| `freecad` | Parametric CAD, STEP I/O, TechDraw manufacturing drawings, FEM | FreeCAD + [neka-nat/freecad-mcp](https://github.com/neka-nat/freecad-mcp) | No — FreeCAD is LGPL |
 | `pixinsight_mcp` | Astrophotography processing (gradients, color, stretch, deconvolution, LRGB) | PixInsight PJSR bridge (vendored, MIT) | Yes — PixInsight + RC Astro plugins |
+| `siril_mcp` | Astrophotography processing + stacking (calibrate/register/stack, gradients, SPCC, stretch, denoise) | [Siril](https://siril.org) headless `siril-cli` | No — Siril is GPLv3 |
 
 Cross-cutting pieces:
 
 - **`styles.py`** — APS / Nature / Science rcParams, Okabe-Ito colors,
   journal column widths. The canonical figure-style source for all
   Voltivity repos.
+- **Python physical-optics server** — `physical_optics_mcp` uses pinned
+  [Prysm](https://github.com/brandondube/prysm) for diffraction and
+  wavefront propagation plus [Poke](https://github.com/Jashcraf/poke) for
+  Gaussian beamlets and Jones polarization. Native tools do not require
+  Zemax/CODE V; Poke's licensed adapters are optional and health reports
+  them unavailable when absent.
+- **Optional astronomy and optical-design stacks** — `--with-astro`
+  installs Astropy, POPPY, AOtools, and HCIPy; `--with-design` installs
+  Optiland for `optical_design_mcp`. These cover FITS/WCS/units,
+  astronomical diffraction, atmosphere/adaptive-optics simulation, and
+  sequential lens optimization/tolerancing, respectively.
 - **Live preview dashboard** — every render from any server streams to a
   browser dashboard at [http://localhost:8765](http://localhost:8765).
 - **Attribution stamping** — outputs carry `Designed with Sci-Viz (c) 2026
@@ -50,13 +69,20 @@ software you must license yourself**:
   are installed. Details in
   [`pixinsight_mcp/README_SCIVIZ.md`](pixinsight_mcp/README_SCIVIZ.md).
 
+Poke also has optional adapters for **Zemax OpticStudio** and **CODE V**.
+`physical_optics_mcp` does not require either application: its native Prysm
+and Poke tools remain available, while health reports licensed adapters
+unavailable when those applications are absent.
+
 ## Quick start
 
 ```bash
 git clone <this repo> && cd sci-viz-mcp
 
 ./install.sh              # python venv + deps + node builds
-# or ./install.sh --minimal   (python-only: skip ray_optics / pixinsight)
+# or ./install.sh --minimal
+# or ./install.sh --with-picogk --sync-picogk
+# or ./install.sh --minimal --with-astro --with-design
 ```
 
 Then generate the MCP registration for your machine (absolute paths filled
@@ -68,8 +94,9 @@ in automatically) and restart your MCP client:
 ```
 
 Prerequisites: Python ≥ 3.10, Node.js ≥ 18 (for the ray-optics and
-PixInsight servers), and optionally COMSOL / PixInsight / Blender for the
-servers that drive them (see the licensing section above).
+PixInsight servers), and optionally .NET 9 / COMSOL / PixInsight / Blender
+for the servers that drive them. PicoGK 2.2 native execution supports
+macOS ARM64 and Windows x64.
 
 Regenerate the repo hero graphic with GPT Image when `OPENAI_API_KEY` is available:
 
@@ -85,17 +112,28 @@ python3 scripts/generate_repo_graphic_gpt_image.py \
 ```
 Cursor IDE (any chat, any repo)
   │
+  ├── picogk_mcp ───── Python broker ───── isolated .NET 9 / PicoGK jobs
+  │                    + locked source       STL/OBJ/VDB/images + provenance
   ├── comsol_mcp ───── mph (Java API) ──── open/solve/export COMSOL models
   ├── comsol_viz_mcp ─ matplotlib ──────── COMSOL field maps, line cuts
   ├── ray_optics_mcp ─ ray-optics engine ─ 2D optical design, telescope
   │                    (Node.js, vendored)   presets, ray-traced spot metrics
+  ├── physical_optics_mcp ─ Prysm + Poke ─ scalar diffraction, PSF/MTF,
+  │                                        beamlets, Jones polarization
+  ├── optical_design_mcp ─ Optiland ────── sequential prescriptions,
+  │                                        optimization, seeded tolerancing
   ├── crystal_mcp ──── ASE + pymatgen ──── lattice diagrams, TikZ, defects
   ├── ovito_mcp ────── OVITO Python API ── atomistic rendering (Tachyon)
   ├── blender ──────── official Blender ── stdio MCP ⇄ TCP :9876 ⇄ Blender
   │                    Foundation MCP        add-on (sciviz_blender_addon
   │                    server                registers bpy.ops.sciviz.*)
+  ├── freecad ──────── neka-nat freecad-mcp  stdio MCP ⇄ XML-RPC :9875 ⇄ FreeCAD
+  │                    (uvx) + FreeCADMCP      TechDraw / Part / FEM / STEP
+  │                    addon (vendored)
   ├── pixinsight_mcp ─ PixInsight PJSR ─── astrophotography processing via
   │                    file IPC bridge       AI-driven MCP tools
+  ├── siril_mcp ────── siril-cli scripts ── free astrophotography stacking
+  │                    (headless, GPLv3)     + processing (Siril 1.4)
   │
   ├── styles.py ────── APS / Nature / Science rcParams, Okabe-Ito, column widths
   └── science-figure-style/ ── AAAS figure spec (SKILL.md) + example_figure.py
@@ -104,6 +142,28 @@ Cursor IDE (any chat, any repo)
 All servers are registered globally in `~/.cursor/mcp.json` and available in every Cursor chat regardless of workspace.
 
 ## Servers
+
+### picogk_mcp (17 tools)
+Full programmatic access to PicoGK 2.2 and the public LEAP 71
+computational-engineering stack. Models are trusted raw C# tasks compiled
+against exact locked revisions of ShapeKernel, LatticeLibrary,
+QuasiCrystals, RoverWheel, HelixHeatX, and the official examples. Every run
+is isolated in a child process and records source/dependency hashes, voxel
+size, logs, timings, and artifact checksums.
+
+**Full manual:** [`picogk_mcp/README_SCIVIZ.md`](picogk_mcp/README_SCIVIZ.md)
+
+| Tool group | Tools |
+|------------|-------|
+| Environment | `picogk_health`, `picogk_stack_info`, `picogk_sync_stack`, `picogk_reference` |
+| Projects | `picogk_create_project`, `picogk_list_projects`, `picogk_get_project`, `picogk_write_source` |
+| Build/run | `picogk_build`, `picogk_run`, `picogk_run_csharp` |
+| Jobs | `picogk_job_status`, `picogk_list_jobs`, `picogk_cancel_job`, `picogk_job_logs` |
+| Artifacts | `picogk_list_artifacts`, `picogk_preview_artifact` |
+
+> `picogk_run_csharp` executes trusted local code with the MCP server user's
+> filesystem/network permissions. Process isolation and timeouts are not an
+> operating-system sandbox.
 
 ### comsol_mcp (15 tools)
 Headless COMSOL execution via `mph` (Java API). Ported from the
@@ -189,6 +249,62 @@ Highlights:
 cd ray_optics_mcp
 python3 validate_designs.py   # traces all 18 presets, power + RMS report
 python3 test_e2e.py           # full MCP round-trip incl. renders
+```
+
+### physical_optics_mcp (19 tools)
+
+Unit-safe, persistent physical-optics models using the repository-pinned
+Prysm and Poke revisions. Prysm provides scalar pupil wavefronts, FFT focus,
+angular-spectrum propagation, PSF, and MTF. Poke provides Gaussian beamlet
+initialization/ABCD complex-curvature propagation and Fresnel/Jones
+polarization analysis.
+
+**Full manual:** [`physical_optics_mcp/README_SCIVIZ.md`](physical_optics_mcp/README_SCIVIZ.md)
+
+| Tool group | Tools |
+|---|---|
+| Environment | `physical_optics_health`, `physical_optics_reference` |
+| Models | `physical_optics_new_model`, `physical_optics_load_model`, `physical_optics_save_model`, `physical_optics_list_models`, `physical_optics_get_model` |
+| Definition | `physical_optics_define_pupil`, `physical_optics_define_wavelengths_fields`, `physical_optics_set_aberrations` |
+| Scalar analysis | `physical_optics_wavefront`, `physical_optics_propagate`, `physical_optics_psf`, `physical_optics_mtf`, `physical_optics_encircled_energy` |
+| Beam/polarization | `physical_optics_gaussian_beamlets`, `physical_optics_polarization_jones` |
+| Output | `physical_optics_render`, `physical_optics_export` |
+
+Models use mm for pupil/focal distances, nm for wavelengths/WFE, degrees for
+fields, µm for PSF radii, and cycles/mm for MTF. Artifact names are stable
+SHA-256 functions of model and operation inputs.
+
+The pinned Prysm revision has no encircled-energy helper, so the server
+integrates the normalized Prysm PSF directly and documents that narrow
+fallback. Poke's Zemax/CODE V adapters are optional; the native beamlet/Jones
+tools require neither commercial application and health reports adapter
+availability explicitly.
+
+### optical_design_mcp (21 tools)
+
+Sequential optical design through optional `optiland==0.6.0`: persistent
+explicit-unit prescriptions, glass catalog access, real-ray tracing, spot
+diagrams, geometric/FFT MTF, deterministic optimization, and seeded Monte
+Carlo tolerancing.
+
+**Full manual:** [`optical_design_mcp/README_SCIVIZ.md`](optical_design_mcp/README_SCIVIZ.md)
+
+| Tool group | Tools |
+|---|---|
+| Environment | `optical_design_health`, `optical_design_reference` |
+| Models | `optical_design_new_model`, `optical_design_load_model`, `optical_design_save_model`, `optical_design_list_models`, `optical_design_get_model` |
+| Prescription | `optical_design_add_surface`, `optical_design_update_surface`, `optical_design_remove_surface`, `optical_design_set_aperture_stop`, `optical_design_set_fields`, `optical_design_set_wavelengths` |
+| Catalog/analysis | `optical_design_materials`, `optical_design_trace`, `optical_design_spot`, `optical_design_mtf` |
+| Design/output | `optical_design_optimize`, `optical_design_tolerance`, `optical_design_render`, `optical_design_export` |
+
+Install with `./install.sh --with-design`. Without Optiland, the server still
+starts and supports model editing; engine-backed tools return a structured
+`ENGINE_UNAVAILABLE` error. Radius/thickness/aperture/spot values are mm,
+angular fields are degrees, wavelengths enter as nm, and MTF is cycles/mm.
+
+```bash
+MPLBACKEND=Agg .venv/bin/python -m pytest -q \
+  tests/test_physical_optics_mcp.py tests/test_optical_design_mcp.py
 ```
 
 ### crystal_mcp (9 tools)
@@ -282,6 +398,44 @@ matches end-to-end. The community `uvx blender-mcp` (ahujasid) used to
 work in earlier setups but its command vocabulary disagrees with the
 Foundation add-on's, so don't mix them.
 
+### freecad (neka-nat FreeCAD MCP + vendored FreeCADMCP addon)
+Parametric CAD control via FreeCAD: Part primitives, STEP import/export,
+TechDraw manufacturing drawings, parts library, and CalculiX FEM. Uses
+[`neka-nat/freecad-mcp`](https://github.com/neka-nat/freecad-mcp) (MIT) —
+the mature community FreeCAD MCP (~1.3k stars). Same transport shape as
+Blender: stdio bridge ↔ localhost RPC ↔ GUI app.
+
+```
+Cursor ──MCP/stdio──▶ uvx freecad-mcp ──XML-RPC :9875──▶ FreeCAD (1.0+)
+                                                          └── FreeCADMCP addon
+                                                                (freecad_mcp/addon/)
+```
+
+**Full manual:** [`freecad_mcp/README_SCIVIZ.md`](freecad_mcp/README_SCIVIZ.md)
+
+| Tool | Description |
+|------|-------------|
+| `create_document` / `get_objects` / `get_object` | Document + object inspection |
+| `create_object` / `edit_object` / `delete_object` | Part primitives and edits |
+| `execute_code` | Full FreeCAD Python (`Part`, `TechDraw`, `Import`, …) |
+| `get_view` | Active-viewport screenshot |
+| `insert_part_from_library` / `get_parts_list` | FreeCAD parts library |
+| `run_fem_analysis` | CalculiX FEM summary |
+
+**Setup (one-time):**
+
+```bash
+brew install --cask freecad          # FreeCAD 1.1+
+cd sci-viz-mcp
+./install_freecad_mcp.sh             # symlink freecad_mcp/addon → FreeCAD Mod
+.venv/bin/python scripts/generate_mcp_config.py --servers freecad --write
+# Restart FreeCAD → Workbench "MCP Addon" → Start RPC Server (or Auto-Start)
+# Reload MCP servers in Cursor
+```
+
+Manufacturing drawings from STEP: import the part, then drive TechDraw
+through `execute_code` (page + orthographic views + DXF/SVG/PDF export).
+
 ### pixinsight_mcp (18 tools, vendored)
 AI-driven PixInsight control for astrophotography processing, vendored from
 [`aescaffre/pixinsight-mcp`](https://github.com/aescaffre/pixinsight-mcp)
@@ -314,10 +468,31 @@ npm run setup-bridge
 # In PixInsight: Script -> Run Script... -> pjsr/pixinsight-mcp-watcher.js
 ```
 
+### siril_mcp (15 tools)
+The free counterpart to `pixinsight_mcp`: AI-driven
+[Siril](https://siril.org) control, following the same processing workflow.
+Siril has first-class headless automation, so this server just generates
+Siril scripts and runs them with `siril-cli` — no GUI, no watcher process,
+and no paid license (Siril is GPLv3). It also covers what the PixInsight
+bridge doesn't: full preprocessing (calibrate / register / stack) of raw
+light frames.
+
+**Full setup/manual:** [`siril_mcp/README_SCIVIZ.md`](siril_mcp/README_SCIVIZ.md).
+
+| Tool group | Tools |
+|------------|-------|
+| Setup/session | `siril_check`, `siril_open_image`, `siril_list_sessions`, `siril_get_statistics` |
+| Processing | `siril_remove_gradient`, `siril_color_calibrate`, `siril_deconvolve`, `siril_stretch`, `siril_remove_green`, `siril_denoise`, `siril_crop`, `siril_run_commands` |
+| Stacking | `siril_preprocess_stack` (convert → calibrate → debayer → register → stack) |
+| Export/knowledge | `siril_save_image`, `siril_workflow` |
+
+Requires Siril ≥ 1.2 installed (auto-detected on macOS; else set `SIRIL_CLI`).
+
 ## Live Preview Dashboard
 
-Every render from any MCP server (crystal, OVITO, Blender, COMSOL, ray optics)
-appears in a browser-based live preview dashboard in real time.
+Every render from any MCP server (crystal, OVITO, Blender, COMSOL, ray
+optics, physical optics, or sequential optical design) appears in a
+browser-based live preview dashboard in real time.
 
 ```
 MCP servers ──POST /api/render──▶ preview server ──WebSocket──▶ browser dashboard
@@ -408,9 +583,10 @@ test commands.
   format supports it). Set `SCIVIZ_ATTRIBUTION=0` to suppress the footer.
 - Everything this repo vendors or builds on is credited in
   [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — ray-optics
-  (Apache-2.0), pixinsight-mcp (MIT), ASE, pymatgen, OVITO, Blender,
-  matplotlib, mph, and the commercial applications (COMSOL, PixInsight,
-  RC Astro) that you must license yourself.
+  (Apache-2.0), pixinsight-mcp (MIT), PicoGK and the LEAP 71 libraries,
+  ASE, pymatgen, OVITO, Blender, matplotlib, mph, and the commercial
+  applications (COMSOL, PixInsight, RC Astro) that you must license
+  yourself.
 
 ## Benchmark: Highly-Cited Crystal Structure Figures
 

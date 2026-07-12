@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-11",
+  "dotnet_target": "net9.0",
+  "package_sources": [
+    "https://api.nuget.org/v3/index.json"
+  ],
+  "packages": {
+    "picogk": {
+      "package": "PicoGK",
+      "version": "2.2.0",
+      "repository": "https://github.com/leap71/PicoGK",
+      "commit": "7b30d22f7b550175962e478f626384cd7ab15411",
+      "tag": "PicoGK-v2.2.0",
+      "license": "Apache-2.0",
+      "supported_rids": [
+        "osx-arm64",
+        "win-x64"
+      ]
+    }
+  },
+  "modules": {
+    "shape_kernel": {
+      "description": "LEAP 71 high-level primitives, splines, frames, implicits, and visualization helpers.",
+      "repository": "https://github.com/leap71/LEAP71_ShapeKernel",
+      "commit": "5460806a5179f55bcfe4209ec3df322f19078720",
+      "license": "Apache-2.0",
+      "redistributable": true,
+      "dependencies": [],
+      "include": [
+        "ShapeKernel/**/*.cs",
+        "Examples/**/*.cs"
+      ],
+      "exclude": []
+    },
+    "lattice_library": {
+      "description": "Beam lattices, conformal cell arrays, TPMS implicits, and thickness fields.",
+      "repository": "https://github.com/leap71/LEAP71_LatticeLibrary",
+      "commit": "81c3c7b2064c19e573c38d76ac09bf1cd2f562d5",
+      "license": "Apache-2.0",
+      "redistributable": true,
+      "dependencies": [
+        "shape_kernel"
+      ],
+      "include": [
+        "LatticeLibrary/**/*.cs",
+        "ImplicitLibrary/**/*.cs",
+        "Examples/**/*.cs"
+      ],
+      "exclude": []
+    },
+    "quasi_crystals": {
+      "description": "Penrose tilings and three-dimensional icosahedral quasi-crystal construction.",
+      "repository": "https://github.com/leap71/LEAP71_QuasiCrystals",
+      "commit": "685e62a8bf4aa1b4da650a23b06532f41f91245b",
+      "license": "Apache-2.0",
+      "redistributable": true,
+      "dependencies": [
+        "shape_kernel"
+      ],
+      "include": [
+        "PenrosePattern/**/*.cs",
+        "QuasiCrystal/**/*.cs",
+        "Examples/**/*.cs"
+      ],
+      "exclude": []
+    },
+    "rover_wheel": {
+      "description": "Procedural layered rover wheels, tread patterns, struts, and conformal transforms.",
+      "repository": "https://github.com/leap71/LEAP71_RoverWheel",
+      "commit": "6cfe3cdc522b9f666d57a8c96ab0b73e9672f2d8",
+      "license": "Apache-2.0",
+      "redistributable": true,
+      "dependencies": [
+        "shape_kernel"
+      ],
+      "include": [
+        "RoverWheel/**/*.cs",
+        "Examples/**/*.cs"
+      ],
+      "exclude": []
+    },
+    "helix_heatx": {
+      "description": "Helical two-stream heat-exchanger computational engineering model.",
+      "repository": "https://github.com/leap71/LEAP71_HelixHeatX",
+      "commit": "a0a0234eb048b6963fb5787fce8315c7b0110b5c",
+      "license": "Apache-2.0",
+      "redistributable": true,
+      "dependencies": [
+        "shape_kernel"
+      ],
+      "include": [
+        "src/**/*.cs"
+      ],
+      "exclude": []
+    },
+    "picogk_examples": {
+      "description": "Official PicoGK getting-started examples.",
+      "repository": "https://github.com/leap71/PicoGK_Examples",
+      "commit": "60cdddac92f9e9aa7ee6f5e262e03367827f9307",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "dependencies": [],
+      "include": [
+        "01_GettingStarted/**/*.cs"
+      ],
+      "exclude": [
+        "Program.cs"
+      ]
+    },
+    "simulation_example": {
+      "description": "PicoGK scalar/vector-field and VDB simulation interchange example.",
+      "repository": "https://github.com/leap71/PicoGK_SimulationExample",
+      "commit": "9e98c1acacad41ac26609cc873cdae35cb73c2d9",
+      "license": "NOASSERTION",
+      "redistributable": false,
+      "dependencies": [
+        "shape_kernel"
+      ],
+      "include": [
+        "src/**/*.cs"
+      ],
+      "exclude": [
+        "Program.cs"
+      ],
+      "compatibility": "Upstream project targets net7.0; Sci-Viz compiles source into its generated net9.0 job without modifying the cache."
+    }
+  }
+}

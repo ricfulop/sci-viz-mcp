@@ -14,13 +14,19 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install core deps (no ovito/mph — heavy or license-gated)
-        run: pip install ase pymatgen matplotlib numpy spglib h5py pyyaml aiohttp
+        run: |
+          pip install ase pymatgen matplotlib numpy spglib h5py pyyaml aiohttp pytest
+          pip install \
+            "prysm @ git+https://github.com/brandondube/prysm.git@43fc1533f3081def53a547b4f727db015740e2cd" \
+            "poke @ git+https://github.com/Jashcraf/poke.git@2e4a29ecce321315724ecf88be63ad7a4b4e5c07"
       - name: Syntax check all servers
         run: |
-          python -m compileall -q crystal_mcp comsol_mcp comsol_viz_mcp ovito_mcp ray_optics_mcp preview scripts attribution.py styles.py mcp_runtime.py
+          python -m compileall -q picogk_mcp crystal_mcp comsol_mcp comsol_viz_mcp ovito_mcp ray_optics_mcp physical_optics_mcp optical_design_mcp siril_mcp preview scripts attribution.py styles.py mcp_runtime.py
+      - name: Physical-optics dependency smoke test
+        run: python -c "from prysm import propagation; from poke.poke_core import Rayfront"
       - name: MCP protocol smoke test (initialize + tools/list on each Python server)
         run: |
-          for srv in crystal_mcp/crystal_mcp_server.py comsol_viz_mcp/comsol_viz_mcp_server.py comsol_mcp/comsol_mcp_server.py; do
+          for srv in picogk_mcp/picogk_mcp_server.py crystal_mcp/crystal_mcp_server.py comsol_viz_mcp/comsol_viz_mcp_server.py comsol_mcp/comsol_mcp_server.py physical_optics_mcp/physical_optics_mcp_server.py siril_mcp/siril_mcp_server.py; do
             echo "== $srv"
             printf '%s\n' \
               '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
@@ -35,6 +41,37 @@ jobs:
           done
       - name: Figure style tests
         run: python tests/test_comsol_viz.py
+      - name: Physical optics tests
+        run: MPLBACKEND=Agg python -m pytest -q tests/test_physical_optics_mcp.py
+      - name: PicoGK broker tests (native tests skip on Linux)
+        env:
+          PICOGK_MCP_AUTO_PREVIEW: "0"
+        run: python tests/test_picogk_mcp.py
+
+  optional-optics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install optional astronomy and design stacks
+        run: pip install pytest -r requirements-astro.txt -r requirements-design.txt
+      - name: Import optional optics packages
+        run: python -c "import aotools, astropy, hcipy, optiland, poppy"
+      - name: Optical design MCP protocol smoke test
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | python optical_design_mcp/optical_design_mcp_server.py | python -c "
+          import sys, json
+          lines = [json.loads(l) for l in sys.stdin]
+          assert lines[0]['result']['serverInfo']['name'] == 'optical_design_mcp'
+          assert len(lines[1]['result']['tools']) >= 18
+          "
+      - name: Optical design tests
+        run: MPLBACKEND=Agg python -m pytest -q tests/test_optical_design_mcp.py
 
   node:
     runs-on: ubuntu-latest
@@ -48,3 +85,43 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm run build
+
+  dotnet-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Compile PicoGK runner
+        run: dotnet build picogk_mcp/runner/SciViz.PicoGK.Runner.csproj --configuration Release --nologo
+
+  picogk-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Verify supported native runtime
+        shell: bash
+        run: python -c "from picogk_mcp import PicoGKBackend; h=PicoGKBackend().health(); assert h['native_runtime_supported'], h"
+      - name: Synchronize exact LEAP 71 stack
+        shell: bash
+        env:
+          PICOGK_MCP_CACHE_DIR: ${{ runner.temp }}/picogk-cache
+        run: python scripts/sync_picogk_stack.py --include-unlicensed
+      - name: Full-stack compile and native geometry tests
+        shell: bash
+        env:
+          PICOGK_MCP_AUTO_PREVIEW: "0"
+          PICOGK_FULL_STACK_TESTS: "1"
+          PICOGK_TEST_CACHE_DIR: ${{ runner.temp }}/picogk-cache
+        run: python tests/test_picogk_mcp.py

@@ -1,7 +1,7 @@
 [project]
 name = "sci-viz-mcp"
-version = "0.6.0"
-description = "MCP servers for scientific visualization and design: COMSOL execution and field maps, ray-optics telescope design, crystal structures, atomistic rendering, Blender, PixInsight, and journal figure styles"
+version = "0.8.0"
+description = "MCP servers for scientific visualization and design: physical and sequential optics, PicoGK geometry, COMSOL, crystal structures, atomistic rendering, Blender, astrophotography, and journal figure styles"
 requires-python = ">=3.10"
 dependencies = [
     "ase",
@@ -11,6 +11,8 @@ dependencies = [
     "spglib",
     "ovito",
     "h5py",
+    "prysm @ git+https://github.com/brandondube/prysm.git@43fc1533f3081def53a547b4f727db015740e2cd",
+    "poke @ git+https://github.com/Jashcraf/poke.git@2e4a29ecce321315724ecf88be63ad7a4b4e5c07",
 ]
 
 [project.optional-dependencies]
@@ -18,6 +20,13 @@ preview = ["aiohttp"]
 dev = ["pytest"]
 # comsol_mcp solver tools: also requires a licensed COMSOL Multiphysics install
 comsol = ["mph", "pyyaml"]
+astro = [
+    "aotools==1.0.8",
+    "astropy==8.0.1",
+    "hcipy==0.7.0",
+    "poppy==1.1.2",
+]
+design = ["optiland==0.6.0"]
 
 # The Blender side is now handled by the official Blender Foundation MCP
 # server (https://www.blender.org/lab/mcp-server/) plus the SciViz add-on
